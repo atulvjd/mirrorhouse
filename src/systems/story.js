@@ -1,6 +1,7 @@
 import { createMemoryOverlay } from "../ui/overlay.js";
 
-export function createStorySystem() {
+export function createStorySystem(options = {}) {
+  const { fragments } = options;
   const memoryOverlay = createMemoryOverlay();
   let memoryActive = false;
 
@@ -16,6 +17,11 @@ export function createStorySystem() {
   function showMemory(text) {
     memoryActive = true;
     memoryOverlay.show(text);
+
+    if (fragments?.showFragment) {
+      const snippet = Array.isArray(text) ? text[0] : text || "";
+      fragments.showFragment(snippet, 3200);
+    }
 
     // Ensure the player can read without mouse-look capture.
     if (document.pointerLockElement) {
