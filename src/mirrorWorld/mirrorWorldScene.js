@@ -1,9 +1,9 @@
 import * as THREE from "three";
-import { createMirrorWorldTown } from "./mirrorWorldTown.js";
 import { createMirrorWorldLighting } from "./mirrorWorldLighting.js";
 import { createMirrorWorldSky } from "./mirrorWorldSky.js";
 import { createMirrorWorldProps } from "./mirrorWorldProps.js";
 import { createMirrorWorldShaders } from "./mirrorWorldShaders.js";
+import { createMirrorTown } from "../systems/mirrorTownSystem.js";
 import { createCitizenSystem } from "./citizens/citizenSystem.js";
 import { createVanishingMessageSystem } from "../systems/vanishingMessageSystem.js";
 
@@ -14,7 +14,7 @@ export function createMirrorWorldScene(camera) {
   scene.fog = new THREE.FogExp2(0x01010d, 0.035);
 
   const interior = createMirrorInterior(scene);
-  const town = createMirrorWorldTown(scene);
+  const town = createMirrorTown(scene);
   const lighting = createMirrorWorldLighting(scene);
   const sky = createMirrorWorldSky(scene);
   const props = createMirrorWorldProps(scene);

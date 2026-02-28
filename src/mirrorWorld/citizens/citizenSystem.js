@@ -4,7 +4,7 @@ import { createCitizenBehavior } from "./citizenBehavior.js";
 import { createShadowSystem } from "./shadowSystem.js";
 import { getRandomDialogue } from "./citizenDialogue.js";
 
-const SPAWN_POINTS = [
+const DEFAULT_SPAWN_POINTS = [
   new THREE.Vector3(-2.4, -2.75, -2.6),
   new THREE.Vector3(2.6, -2.75, -2.4),
   new THREE.Vector3(-4.8, -2.75, -4.4),
@@ -13,7 +13,7 @@ const SPAWN_POINTS = [
   new THREE.Vector3(-1.2, -2.75, -7.5),
 ];
 
-export function createCitizenSystem(scene) {
+export function createCitizenSystem(scene, spawnPoints = DEFAULT_SPAWN_POINTS) {
   const shadowSystem = createShadowSystem(scene);
   const citizens = [];
 
@@ -36,7 +36,7 @@ export function createCitizenSystem(scene) {
 
   let dialogueTimeout = null;
 
-  for (const point of SPAWN_POINTS) {
+  for (const point of spawnPoints) {
     const model = createCitizenModel();
     model.group.position.copy(point);
     model.group.visible = true;
