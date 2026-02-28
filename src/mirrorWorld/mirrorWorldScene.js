@@ -5,6 +5,7 @@ import { createMirrorWorldSky } from "./mirrorWorldSky.js";
 import { createMirrorWorldProps } from "./mirrorWorldProps.js";
 import { createMirrorWorldShaders } from "./mirrorWorldShaders.js";
 import { createCitizenSystem } from "./citizens/citizenSystem.js";
+import { createVanishingMessageSystem } from "../systems/vanishingMessageSystem.js";
 
 export function createMirrorWorldScene(camera) {
   const scene = new THREE.Scene();
@@ -19,6 +20,7 @@ export function createMirrorWorldScene(camera) {
   const props = createMirrorWorldProps(scene);
   const shaders = createMirrorWorldShaders(camera);
   const citizens = createCitizenSystem(scene);
+  const vanishingMessages = createVanishingMessageSystem(scene);
 
   let townRevealed = false;
   let interiorPulse = 0;
@@ -248,3 +250,4 @@ function createMirrorInterior(scene) {
     update,
   };
 }
+    vanishingMessages.update(delta, camera.position);
