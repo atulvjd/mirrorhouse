@@ -16,16 +16,37 @@ import { triggerMirrorGlitchPulse } from "./shaders/mirrorShader.js";
 import { createCameraEffects } from "./systems/cameraEffects.js";
 import { createHallucinationSystem } from "./systems/hallucinationSystem.js";
 import { createRealityDistortion } from "./systems/realityDistortion.js";
+import { createSky } from "./environment/sky.js";
+import { createFog } from "./environment/fog.js";
+import { createGate } from "./environment/gate.js";
+import { createBungalow } from "./environment/bungalow.js";
+import { createGarden } from "./environment/garden.js";
+import { createLighting } from "./environment/lighting.js";
+import { createGround } from "./environment/ground.js";
+import { createHouseInterior } from "./interior/houseInterior.js";
+import { createFurniture } from "./interior/furniture.js";
+import { createDrawerSystem } from "./interior/drawerSystem.js";
+import { createPhotoSystem } from "./interior/photoSystem.js";
+import { createLetterSystem } from "./interior/letterSystem.js";
+import { createDustParticles } from "./interior/dustParticles.js";
+import { createInteriorLighting } from "./interior/lightingInterior.js";
 
 export function startGame() {
   // Initialize the core Three.js objects.
   const renderer = createRenderer();
   const scene = createScene();
+  const sky = createSky(scene);
+  createFog(scene);
+  const ground = createGround(scene);
+  const gate = createGate(scene);
+  const exteriorBungalow = createBungalow(scene);
+  const garden = createGarden(scene);
+  const environmentLighting = createLighting(scene);
   const flicker = createFlickerSystem(scene);
   const glitch = createGlitchSystem(scene);
   const camera = createCamera();
-  camera.position.set(0, 1.72, 18);
-  camera.lookAt(0, 2.3, -6);
+  camera.position.set(0, 1.6, 8);
+  camera.lookAt(0, 2.2, -8);
   renderer.shadowMap.enabled = true;
   const reality = createRealityDistortion(scene, camera);
   const cameraEffects = createCameraEffects(camera);
@@ -33,6 +54,12 @@ export function startGame() {
   const atmosphere = createAudioAtmosphere(camera);
   const audio = createAudioSystem(camera);
   const openingAmbient = createOpeningAmbientAudio();
+  let interiorLoaded = false;
+  let interiorActive = false;
+  let interiorSystems = null;
+  const exteriorBackground = scene.background;
+  const exteriorFog = scene.fog;
+
   let forcedMirrorLookRemaining = 0;
   let mirrorObject = null;
   let mirrorInteractionCount = 0;
@@ -50,6 +77,14 @@ export function startGame() {
   const ENDING_DISAPPEAR_DURATION = 0.35;
   const ENDING_BEHIND_REVEAL_DURATION = 1;
   const ENDING_FADE_DURATION = 3;
+  const exteriorRoots = [
+    sky.object,
+    ground.object,
+    gate.object,
+    exteriorBungalow.object,
+    garden.object,
+    environmentLighting.object,
+  ];
 
   const story = createStorySystem();
   const house = createHouse(story, {
@@ -64,8 +99,12 @@ export function startGame() {
     },
   });
   scene.add(house);
+  exteriorRoots.push(house);
   if (scene.userData.pointLight) {
     reality.registerLight(scene.userData.pointLight);
+  }
+  if (environmentLighting.moonLight) {
+    reality.registerLight(environmentLighting.moonLight);
   }
   const ambientLight =
     scene.children.find((child) => child.isAmbientLight) || null;
@@ -73,31 +112,7 @@ export function startGame() {
     reality.registerLight(ambientLight);
   }
 
-  house.traverse((object) => {
-    if (!object.isMesh || object.name === "mirror" || !object.geometry) {
-      return;
-    }
-
-    if (!object.geometry.boundingBox) {
-      object.geometry.computeBoundingBox();
-    }
-
-    const box = object.geometry.boundingBox;
-    if (!box) {
-      return;
-    }
-
-    const sizeX = box.max.x - box.min.x;
-    const sizeY = box.max.y - box.min.y;
-    const sizeZ = box.max.z - box.min.z;
-    const maxSize = Math.max(sizeX, sizeY, sizeZ);
-
-    if (maxSize > 3) {
-      return;
-    }
-
-    hallucinations.register(object);
-  });
+  registerHallucinationMeshes(house, hallucinations);
 
   mirrorObject = house.getObjectByName("mirror") || null;
   const reflectionSceneIndex = scene.children.length;
@@ -151,6 +166,82 @@ export function startGame() {
     interaction.register(object, callback);
   }
 
+  function shouldEnterInterior() {
+    if (interiorLoaded || endingActive || endingComplete) {
+      return false;
+    }
+
+    const nearDoor =
+      Math.abs(camera.position.x) < 1.25 &&
+      camera.position.z < -4.7 &&
+      camera.position.z > -7.2 &&
+      camera.position.y < 2.6;
+
+    return nearDoor;
+  }
+
+  function disableExteriorRendering() {
+    for (let i = 0; i < exteriorRoots.length; i += 1) {
+      const root = exteriorRoots[i];
+      if (root) {
+        root.visible = false;
+      }
+    }
+
+    scene.background = new THREE.Color(0x0b0908);
+    scene.fog = new THREE.FogExp2(0x0f0d0c, 0.09);
+  }
+
+  function loadInterior() {
+    if (interiorLoaded) {
+      return;
+    }
+
+    const interior = createHouseInterior(scene);
+    const furniture = createFurniture(interior.group, interior.anchors);
+    const drawerSystem = createDrawerSystem(
+      furniture.drawer,
+      furniture.drawerContentAnchor
+    );
+    const photoSystem = createPhotoSystem(drawerSystem.getContentAnchor(), story);
+    const letterSystem = createLetterSystem(drawerSystem.getContentAnchor());
+    const dustParticles = createDustParticles(scene, camera, interior.bounds);
+    const interiorLighting = createInteriorLighting(scene);
+
+    interiorSystems = {
+      interior,
+      furniture,
+      drawerSystem,
+      photoSystem,
+      letterSystem,
+      dustParticles,
+      interiorLighting,
+    };
+
+    const drawerInteractable = drawerSystem.getInteractable();
+    interaction.register(drawerInteractable.object, drawerInteractable.callback);
+
+    for (let i = 0; i < photoSystem.interactables.length; i += 1) {
+      const entry = photoSystem.interactables[i];
+      interaction.register(entry.object, entry.callback);
+    }
+
+    for (let i = 0; i < letterSystem.interactables.length; i += 1) {
+      const entry = letterSystem.interactables[i];
+      interaction.register(entry.object, entry.callback);
+    }
+
+    registerHallucinationMeshes(interior.group, hallucinations);
+    registerHallucinationMeshes(furniture.group, hallucinations);
+
+    interiorLoaded = true;
+    interiorActive = true;
+    disableExteriorRendering();
+
+    camera.position.set(0, 1.6, -5.85);
+    camera.lookAt(0, 1.62, -10.2);
+  }
+
   // Keep camera projection aligned with viewport changes.
   window.addEventListener("resize", () => {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -161,25 +252,47 @@ export function startGame() {
   function animate() {
     requestAnimationFrame(animate);
     const delta = clock.getDelta();
+    const letterActive = interiorSystems?.letterSystem?.isActive() || false;
 
-    if (endingActive || endingComplete) {
-      overlay.setVisible(false);
-    } else if (story.isActive()) {
+    if (endingActive || endingComplete || story.isActive() || letterActive) {
       overlay.setVisible(false);
     } else {
       movement.update(delta);
+
+      if (shouldEnterInterior()) {
+        loadInterior();
+      }
+
       const target = interaction.update();
+      const promptText =
+        target?.userData?.inspectPrompt ||
+        (target?.userData?.inspectType
+          ? "Press E to inspect"
+          : "Press E to interact");
+      overlay.setText(promptText);
       overlay.setVisible(Boolean(target));
     }
 
-    if (movement.controls.isLocked) {
+    if (movement.controls.isLocked && !interiorActive) {
       openingAmbient.start();
     }
-    openingAmbient.update(delta);
+    if (!interiorActive) {
+      openingAmbient.update(delta);
+      sky.update(delta);
+      gate.update(camera, delta);
+      garden.update(delta);
+      environmentLighting.update(delta);
 
-    const environmentUpdate = house.userData.environmentUpdate;
-    if (typeof environmentUpdate === "function") {
-      environmentUpdate(camera, delta);
+      const environmentUpdate = house.userData.environmentUpdate;
+      if (typeof environmentUpdate === "function") {
+        environmentUpdate(camera, delta);
+      }
+    } else if (interiorSystems) {
+      interiorSystems.interior.update(delta, movement.controls.isLocked);
+      interiorSystems.drawerSystem.update(delta);
+      interiorSystems.photoSystem.update(delta);
+      interiorSystems.interiorLighting.update(delta);
+      interiorSystems.dustParticles.update(delta);
     }
 
     reflection.update(camera, delta);
@@ -347,6 +460,9 @@ export function startGame() {
 
     if (story.isActive()) {
       window.dispatchEvent(new KeyboardEvent("keydown", { code: "Escape" }));
+    }
+    if (interiorSystems?.letterSystem?.isActive()) {
+      interiorSystems.letterSystem.close();
     }
 
     if (!movement.controls.isLocked) {
@@ -536,6 +652,34 @@ export function startGame() {
   }
 
   animate();
+}
+
+function registerHallucinationMeshes(root, hallucinations) {
+  root.traverse((object) => {
+    if (!object.isMesh || object.name === "mirror" || !object.geometry) {
+      return;
+    }
+
+    if (!object.geometry.boundingBox) {
+      object.geometry.computeBoundingBox();
+    }
+
+    const box = object.geometry.boundingBox;
+    if (!box) {
+      return;
+    }
+
+    const sizeX = box.max.x - box.min.x;
+    const sizeY = box.max.y - box.min.y;
+    const sizeZ = box.max.z - box.min.z;
+    const maxSize = Math.max(sizeX, sizeY, sizeZ);
+
+    if (maxSize > 3) {
+      return;
+    }
+
+    hallucinations.register(object);
+  });
 }
 
 function createOpeningAmbientAudio() {

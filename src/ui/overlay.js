@@ -20,11 +20,16 @@ export function createInteractionOverlay() {
 
   document.body.appendChild(prompt);
 
+  function setText(text) {
+    prompt.textContent = text || "Press E to interact";
+  }
+
   function setVisible(visible) {
     prompt.style.display = visible ? "block" : "none";
   }
 
   return {
+    setText,
     setVisible,
   };
 }
