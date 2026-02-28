@@ -1,0 +1,71 @@
+# ================================
+# Node.js
+# ================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ================================
+# Build outputs
+# ================================
+dist/
+build/
+out/
+.cache/
+.vite/
+
+# ================================
+# Environment files
+# ================================
+.env
+.env.*
+!.env.example
+
+# ================================
+# Logs
+# ================================
+logs/
+*.log
+
+# ================================
+# OS files
+# ================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ================================
+# IDE / Editors
+# ================================
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# ================================
+# Mac system files
+# ================================
+.AppleDouble
+.LSOverride
+Icon
+
+# ================================
+# Temporary files
+# ================================
+tmp/
+temp/
+*.tmp
+
+# ================================
+# Coverage / testing
+# ================================
+coverage/
+
+# ================================
+# Optional: local assets if huge
+# ================================
+# Uncomment if you add large audio or textures
+# assets/audio/raw/
+# assets/textures/raw/
