@@ -64,6 +64,13 @@ export function startGame() {
   const hallucinations = createHallucinationSystem(scene, camera);
   const atmosphere = createAudioAtmosphere(camera);
   const audio = createAudioSystem(camera);
+  const storyFragments = createStoryFragments();
+  const objectives = createObjectiveSystem();
+  const cinematicEvents = createCinematicEvents({
+    scene,
+    storyFragments,
+    objectives,
+  });
   const openingAmbient = createOpeningAmbientAudio();
   let interiorLoaded = false;
   let interiorActive = false;
@@ -105,7 +112,9 @@ export function startGame() {
     environmentLighting.object,
   ];
 
-  const story = createStorySystem();
+  const story = createStorySystem({ fragments: storyFragments });
+  objectives.setObjective("Explore grandmother's bungalow");
+
   const house = createHouse(story, {
     onMirrorInteract: () => {
       mirrorInteractionCount += 1;
@@ -357,6 +366,7 @@ export function startGame() {
     const letterActive = interiorSystems?.letterSystem?.isActive() || false;
     if (letterActive) {
       basementUnlocked = true;
+      cinematicEvents.triggerBasementSequence();
     }
     if (shouldLoadBasement()) {
       loadBasement();
@@ -531,6 +541,7 @@ export function startGame() {
       reality.update(delta);
     }
     cameraEffects.update(delta);
+    cinematicEvents.update(delta, mirrorWorldActive);
     hallucinations.update(delta);
     renderer.render(scene, camera);
   }
@@ -668,6 +679,7 @@ export function startGame() {
       atmosphere.triggerMirrorDistortion();
       cameraEffects.triggerMirrorPulse();
       reality.triggerRealityPulse();
+      cinematicEvents.triggerMirrorTransition();
     }
   }
 
@@ -852,6 +864,7 @@ export function startGame() {
     if (!movement.controls.isLocked) {
       movement.controls.lock();
     }
+    cinematicEvents.completeMirrorTransition();
   }
 
   animate();
