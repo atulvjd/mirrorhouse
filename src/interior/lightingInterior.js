@@ -20,6 +20,7 @@ export function createInteriorLighting(scene) {
   group.add(moonLight);
 
   const lampStates = [];
+  const pointLights = [];
   const lampPositions = [
     [-2.6, 2.2, -8.4],
     [0, 2.15, -12.4],
@@ -46,6 +47,7 @@ export function createInteriorLighting(scene) {
     light.position.copy(bulb.position);
     light.castShadow = true;
     group.add(light);
+    pointLights.push(light);
 
     lampStates.push({
       light,
@@ -81,6 +83,7 @@ export function createInteriorLighting(scene) {
     group,
     ambient,
     moonLight,
+    pointLights,
     update,
     setVisible(visible) {
       group.visible = visible;

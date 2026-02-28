@@ -30,6 +30,14 @@ import { createPhotoSystem } from "./interior/photoSystem.js";
 import { createLetterSystem } from "./interior/letterSystem.js";
 import { createDustParticles } from "./interior/dustParticles.js";
 import { createInteriorLighting } from "./interior/lightingInterior.js";
+import { createMirrorWorldScene } from "./mirrorWorld/mirrorWorldScene.js";
+import { createBasementEnvironment } from "./basement/basementEnvironment.js";
+import { createBasementStaircase } from "./basement/staircase.js";
+import { createFlashlightSystem } from "./basement/flashlightSystem.js";
+import { createPowerCutEvent } from "./basement/powerCutEvent.js";
+import { createCarpetSystem } from "./basement/carpetSystem.js";
+import { createHiddenMirror } from "./basement/hiddenMirror.js";
+import { createBasementSound } from "./basement/basementSound.js";
 
 export function startGame() {
   // Initialize the core Three.js objects.
@@ -57,6 +65,14 @@ export function startGame() {
   let interiorLoaded = false;
   let interiorActive = false;
   let interiorSystems = null;
+  let mirrorWorldPending = false;
+  let mirrorWorldActive = false;
+  let mirrorWorld = null;
+  let basementUnlocked = false;
+  let basementLoaded = false;
+  let basementSystems = null;
+  let basementMirrorHoldRemaining = 0;
+  let basementPowerCutTriggered = false;
   const exteriorBackground = scene.background;
   const exteriorFog = scene.fog;
 
@@ -242,10 +258,93 @@ export function startGame() {
     camera.lookAt(0, 1.62, -10.2);
   }
 
+  function shouldLoadBasement() {
+    return interiorLoaded && basementUnlocked && !basementLoaded;
+  }
+
+  function loadBasement() {
+    if (basementLoaded || !interiorSystems) {
+      return;
+    }
+
+    const basementEnvironment = createBasementEnvironment(scene);
+    const staircase = createBasementStaircase(interiorSystems.interior.group);
+    const basementSound = createBasementSound();
+    const flashlightSystem = createFlashlightSystem(camera);
+    const hiddenMirror = createHiddenMirror(basementEnvironment.group);
+    const carpetSystem = createCarpetSystem(basementEnvironment.group, () => {
+      basementSound.triggerCarpetDrag();
+      hiddenMirror.reveal();
+      basementSound.triggerMirrorRevealTone();
+    });
+
+    const globalLights = [];
+    scene.traverse((node) => {
+      if (node.isLight) {
+        globalLights.push(node);
+      }
+    });
+
+    const lightsToCut = Array.from(
+      new Set([
+        ...globalLights,
+      interiorSystems.interiorLighting.ambient,
+      interiorSystems.interiorLighting.moonLight,
+      staircase.stairLight,
+      basementEnvironment.weakAmbient,
+      ...interiorSystems.interiorLighting.pointLights,
+      ])
+    );
+
+    const powerCutEvent = createPowerCutEvent(lightsToCut, () => {
+      basementSound.start();
+      flashlightSystem.enable();
+      basementSound.triggerPowerBuzz();
+    });
+
+    basementSystems = {
+      basementEnvironment,
+      staircase,
+      sound: basementSound,
+      flashlightSystem,
+      powerCutEvent,
+      carpetSystem,
+      hiddenMirror,
+    };
+
+    const carpetInteractable = carpetSystem.getInteractable();
+    interaction.register(carpetInteractable.object, carpetInteractable.callback);
+
+    for (let i = 0; i < basementEnvironment.inspectables.length; i += 1) {
+      const inspectable = basementEnvironment.inspectables[i];
+      interaction.register(inspectable.object, () => {
+        if (story.isActive()) {
+          return;
+        }
+        story.showMemory(inspectable.text);
+      });
+    }
+
+    registerHallucinationMeshes(basementEnvironment.group, hallucinations);
+    basementLoaded = true;
+  }
+
   // Keep camera projection aligned with viewport changes.
   window.addEventListener("resize", () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
+  });
+
+  window.addEventListener("keydown", (event) => {
+    if (
+      mirrorWorldActive &&
+      mirrorWorld &&
+      event.code === "KeyE" &&
+      mirrorWorld.handleProductPickup()
+    ) {
+      overlay.setText("They stare at you.");
+      overlay.setVisible(true);
+    }
   });
 
   // Run the base render loop.
@@ -253,8 +352,41 @@ export function startGame() {
     requestAnimationFrame(animate);
     const delta = clock.getDelta();
     const letterActive = interiorSystems?.letterSystem?.isActive() || false;
+    if (letterActive) {
+      basementUnlocked = true;
+    }
+    if (shouldLoadBasement()) {
+      loadBasement();
+    }
 
-    if (endingActive || endingComplete || story.isActive() || letterActive) {
+    if (basementMirrorHoldRemaining > 0) {
+      basementMirrorHoldRemaining = Math.max(
+        0,
+        basementMirrorHoldRemaining - delta
+      );
+    }
+
+    if (mirrorWorldPending && !mirrorWorldActive) {
+      enterMirrorWorld();
+    }
+
+    if (mirrorWorldActive && mirrorWorld) {
+      movement.update(delta);
+      mirrorWorld.update(camera, delta);
+      const prompt = mirrorWorld.getStorePrompt();
+      overlay.setText(prompt || "");
+      overlay.setVisible(Boolean(prompt));
+      renderer.render(mirrorWorld.scene, camera);
+      return;
+    }
+
+    if (
+      endingActive ||
+      endingComplete ||
+      story.isActive() ||
+      letterActive ||
+      basementMirrorHoldRemaining > 0
+    ) {
       overlay.setVisible(false);
     } else {
       movement.update(delta);
@@ -288,11 +420,46 @@ export function startGame() {
         environmentUpdate(camera, delta);
       }
     } else if (interiorSystems) {
-      interiorSystems.interior.update(delta, movement.controls.isLocked);
+      interiorSystems.interior.update(
+        delta,
+        movement.controls.isLocked && !basementLoaded
+      );
       interiorSystems.drawerSystem.update(delta);
       interiorSystems.photoSystem.update(delta);
       interiorSystems.interiorLighting.update(delta);
       interiorSystems.dustParticles.update(delta);
+    }
+
+    if (basementLoaded && basementSystems) {
+      const stairState = basementSystems.staircase.update(
+        camera,
+        delta,
+        () => {
+          basementSystems.sound.start();
+          basementSystems.sound.triggerStepCreak();
+        }
+      );
+
+      if (stairState.inBasementZone || basementPowerCutTriggered) {
+        basementSystems.sound.start();
+      }
+
+      if (stairState.reachedBasementFloor && !basementPowerCutTriggered) {
+        basementPowerCutTriggered = basementSystems.powerCutEvent.trigger();
+      }
+
+      basementSystems.sound.update(delta);
+      basementSystems.flashlightSystem.update(delta);
+      basementSystems.carpetSystem.update(delta);
+      basementSystems.hiddenMirror.update(camera, delta);
+
+      const holdDuration = basementSystems.hiddenMirror.consumeHoldRequest();
+      if (holdDuration > 0) {
+        basementMirrorHoldRemaining = Math.max(
+          basementMirrorHoldRemaining,
+          holdDuration
+        );
+      }
     }
 
     reflection.update(camera, delta);
@@ -355,9 +522,11 @@ export function startGame() {
       updateEndingSequence(delta);
     }
 
-    glitch.update(delta);
-    flicker.update(delta);
-    reality.update(delta);
+    if (!basementPowerCutTriggered) {
+      glitch.update(delta);
+      flicker.update(delta);
+      reality.update(delta);
+    }
     cameraEffects.update(delta);
     hallucinations.update(delta);
     renderer.render(scene, camera);
@@ -648,6 +817,37 @@ export function startGame() {
       endingComplete = true;
       cameraEffects.setEndingActive(false);
       endingMessage.style.opacity = "1";
+      prepareMirrorWorld();
+    }
+  }
+
+  function prepareMirrorWorld() {
+    if (mirrorWorldActive || mirrorWorldPending) {
+      return;
+    }
+
+    mirrorWorldPending = true;
+  }
+
+  function enterMirrorWorld() {
+    if (mirrorWorldActive || !mirrorWorldPending) {
+      return;
+    }
+
+    mirrorWorld = createMirrorWorldScene(camera);
+    mirrorWorldActive = true;
+    mirrorWorldPending = false;
+
+    endingOverlay.style.display = "none";
+    overlay.setVisible(false);
+
+    movement.controls.getObject().position.set(0, -2.3, -17.4);
+    movement.controls.getObject().quaternion.set(0, 0, 0, 1);
+    camera.position.set(0, -2.3, -17.4);
+    camera.lookAt(0, -2.3, -15.2);
+
+    if (!movement.controls.isLocked) {
+      movement.controls.lock();
     }
   }
 
