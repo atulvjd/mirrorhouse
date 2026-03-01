@@ -23,13 +23,13 @@ import { createBungalow } from "./environment/bungalow.js";
 import { createGarden } from "./environment/garden.js";
 import { createLighting } from "./environment/lighting.js";
 import { createGround } from "./environment/ground.js";
-import { createHouseInterior } from "./interior/houseInterior.js";
-import { createFurniture } from "./interior/furniture.js";
+import { createInteriorLighting } from "./interior/lightingInterior.js";
+import { createRoomInterior } from "./world/roomInterior.js";
+import { createFurniture } from "./world/furniture.js";
 import { createDrawerSystem } from "./interior/drawerSystem.js";
 import { createPhotoSystem } from "./interior/photoSystem.js";
 import { createLetterSystem } from "./interior/letterSystem.js";
 import { createDustParticles } from "./interior/dustParticles.js";
-import { createInteriorLighting } from "./interior/lightingInterior.js";
 
 export function startGame() {
   // Initialize the core Three.js objects.
@@ -197,25 +197,32 @@ export function startGame() {
       return;
     }
 
-    const interior = createHouseInterior(scene);
-    const furniture = createFurniture(interior.group, interior.anchors);
+    const interiorRoom = createRoomInterior(scene);
+    const furniture = createFurniture(interiorRoom.group);
+    
     const drawerSystem = createDrawerSystem(
       furniture.drawer,
       furniture.drawerContentAnchor
     );
     const photoSystem = createPhotoSystem(drawerSystem.getContentAnchor(), story);
     const letterSystem = createLetterSystem(drawerSystem.getContentAnchor());
-    const dustParticles = createDustParticles(scene, camera, interior.bounds);
+    const dustParticles = createDustParticles(scene, camera, interiorRoom.bounds);
     const interiorLighting = createInteriorLighting(scene);
 
     interiorSystems = {
-      interior,
+      interior: interiorRoom.group,
       furniture,
       drawerSystem,
       photoSystem,
       letterSystem,
       dustParticles,
       interiorLighting,
+      update: (delta, locked) => {
+        drawerSystem.update(delta);
+        photoSystem.update(delta);
+        interiorLighting.update(delta);
+        dustParticles.update(delta);
+      }
     };
 
     const drawerInteractable = drawerSystem.getInteractable();
@@ -231,14 +238,14 @@ export function startGame() {
       interaction.register(entry.object, entry.callback);
     }
 
-    registerHallucinationMeshes(interior.group, hallucinations);
+    registerHallucinationMeshes(interiorRoom.group, hallucinations);
     registerHallucinationMeshes(furniture.group, hallucinations);
 
     interiorLoaded = true;
     interiorActive = true;
     disableExteriorRendering();
 
-    camera.position.set(0, 1.6, -5.85);
+    camera.position.set(0, 1.6, -2); // Adjusted for the 10x10 room
     camera.lookAt(0, 1.62, -10.2);
   }
 
@@ -288,11 +295,7 @@ export function startGame() {
         environmentUpdate(camera, delta);
       }
     } else if (interiorSystems) {
-      interiorSystems.interior.update(delta, movement.controls.isLocked);
-      interiorSystems.drawerSystem.update(delta);
-      interiorSystems.photoSystem.update(delta);
-      interiorSystems.interiorLighting.update(delta);
-      interiorSystems.dustParticles.update(delta);
+      interiorSystems.update(delta, movement.controls.isLocked);
     }
 
     reflection.update(camera, delta);
