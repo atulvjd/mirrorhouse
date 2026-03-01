@@ -119,9 +119,11 @@ export function loadMirrorWorld(scene, camera, story, interaction, overlay) {
       endingManager.update(delta);
       mirrorAtmosphere.update(delta);
 
-      const distToDirt = camera.position.distanceTo(dirtMesh.position);
       dirtMesh.material.opacity = THREE.MathUtils.smoothstep(distToDirt, 2, 6) * 0.8;
   }
 
-  return { update };
+  return { 
+      update,
+      handleProductPickup: () => cinematic.isTriggered()
+  };
 }

@@ -5,9 +5,6 @@ export function createEndingSequenceManager(scene, camera, overlay) {
   let currentEnding = null;
   let time = 0;
 
-  // Visuals for Stay Ending
-  let stitchLines = [];
-
   function triggerReturnEnding() {
       sequenceActive = true;
       currentEnding = "return";
@@ -17,17 +14,11 @@ export function createEndingSequenceManager(scene, camera, overlay) {
       document.body.style.transition = "filter 2s ease";
       document.body.style.filter = "hue-rotate(180deg) blur(5px) contrast(200%)";
       
-      // 2. Camera gets pulled into mirror (simulate by pushing forward rapidly)
-      // Done in update loop
-      
       // 3. Fade to Black & Reset
       setTimeout(() => {
-          showBlackScreen("You wake up in the basement.
-The mirror is gone.
-The carpet is back.", () => {
+          showBlackScreen(`You wake up in the basement.\nThe mirror is gone.\nThe carpet is back.`, () => {
               // The final twist
-              showBlackScreen("But in the reflection of a small glass frame...
-Your face is stitched.", null, true);
+              showBlackScreen(`But in the reflection of a small glass frame...\nYour face is stitched.`, null, true);
           });
       }, 3000);
   }
@@ -44,10 +35,8 @@ Your face is stitched.", null, true);
 
       setTimeout(() => {
           overlay.setVisible(false);
-          showBlackScreen("The reflection walks past you.
-It takes your place in the light.", () => {
-              showBlackScreen("Your shadow now leads you.
-You belong here.", null, true);
+          showBlackScreen(`The reflection walks past you.\nIt takes your place in the light.`, () => {
+              showBlackScreen(`Your shadow now leads you.\nYou belong here.`, null, true);
           });
       }, 4000);
   }
@@ -59,6 +48,7 @@ You belong here.", null, true);
       blackScreen.style.background = "black";
       blackScreen.style.color = "white";
       blackScreen.style.display = "flex";
+      blackScreen.style.flexDirection = "column";
       blackScreen.style.alignItems = "center";
       blackScreen.style.justifyContent = "center";
       blackScreen.style.textAlign = "center";

@@ -111,5 +111,8 @@ export function createStoreCinematicEvent(scene, interaction, overlay, story, st
       }
   }
 
-  return { update };
+  return { 
+      update,
+      isTriggered: () => eventTriggered
+  };
 }
