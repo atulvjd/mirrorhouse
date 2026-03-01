@@ -85,8 +85,11 @@ export function loadMirrorWorld(scene, camera, story, interaction, overlay) {
 
   // 7. Mirror World Lighting & Atmosphere
   const mirrorAtmosphere = createAtmosphere(scene);
-  scene.fog = new THREE.FogExp2(0x1a2530, 0.05);
-  scene.background = new THREE.Color(0x1a2530);
+  scene.fog = new THREE.FogExp2(0x8b8b92, 0.004);
+  scene.background = new THREE.Color(0x8b8b92);
+  
+  const hemiLight = new THREE.HemisphereLight(0x9aa3b0, 0x4e4b47, 0.9);
+  scene.add(hemiLight);
   
   // 8. Position Player
   camera.position.set(0, 1.2, 0);
@@ -95,6 +98,7 @@ export function loadMirrorWorld(scene, camera, story, interaction, overlay) {
   let standingUp = true;
   let standProgress = 0;
   let time = 0;
+  let dialogueTriggered = false;
 
   function update(delta) {
       time += delta;
@@ -103,7 +107,15 @@ export function loadMirrorWorld(scene, camera, story, interaction, overlay) {
           const ease = 1 - Math.pow(1 - standProgress, 3);
           camera.position.y = THREE.MathUtils.lerp(1.2, 1.6, ease);
           camera.rotation.x = THREE.MathUtils.lerp(Math.PI / 2, 0, ease);
-          if (standProgress >= 1) standingUp = false;
+          if (standProgress >= 1) {
+              standingUp = false;
+              if (!dialogueTriggered) {
+                  dialogueTriggered = true;
+                  setTimeout(() => {
+                      story.showMemory("This isn't right.\nEverything looks the same...\nBut something feels wrong.");
+                  }, 1000);
+              }
+          }
       }
       
       town.update(time);
@@ -119,6 +131,7 @@ export function loadMirrorWorld(scene, camera, story, interaction, overlay) {
       endingManager.update(delta);
       mirrorAtmosphere.update(delta);
 
+      const distToDirt = camera.position.distanceTo(dirtMesh.position);
       dirtMesh.material.opacity = THREE.MathUtils.smoothstep(distToDirt, 2, 6) * 0.8;
   }
 

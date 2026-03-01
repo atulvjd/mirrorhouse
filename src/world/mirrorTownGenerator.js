@@ -7,8 +7,8 @@ export function createMirrorTown(scene) {
   // 1. Ground: Cobblestone
   const groundGeo = new THREE.PlaneGeometry(200, 200);
   const groundMat = new THREE.MeshStandardMaterial({ 
-    color: 0x1a1a1a, 
-    roughness: 0.9,
+    color: 0x3a3f58, // slightly bluish gothic cobblestone
+    roughness: 0.55, // Step 5: Ground Reflection improvement
     metalness: 0.1 
   });
   const ground = new THREE.Mesh(groundGeo, groundMat);
@@ -16,69 +16,122 @@ export function createMirrorTown(scene) {
   ground.receiveShadow = true;
   townGroup.add(ground);
 
+  // Architecture Colors
+  const wallColors = [0xd2cdc4, 0xc7c1b8, 0xbcb6ac]; // Step 10: Color Balance (Vintage warm tones)
+  const roofColors = [0x3f3b3a, 0x4b4644];
+
   // 2. Building Generator with Mirrored Text
-  const createMirroredBuilding = (x, z, w, h, d, color, label) => {
+  const createMirroredBuilding = (x, z, w, h, d, label, isTall = false) => {
     const bGroup = new THREE.Group();
+    const wallColor = wallColors[Math.floor(Math.random() * wallColors.length)];
+    const roofColor = roofColors[Math.floor(Math.random() * roofColors.length)];
+
     const body = new THREE.Mesh(
         new THREE.BoxGeometry(w, h, d),
-        new THREE.MeshStandardMaterial({ color: color, roughness: 0.8 })
+        new THREE.MeshStandardMaterial({ color: wallColor, roughness: 0.9 })
     );
     body.position.y = h / 2;
     body.castShadow = true;
     body.receiveShadow = true;
     bGroup.add(body);
 
-    // Add Mirrored Shop Sign
-    const signCanvas = document.createElement("canvas");
-    signCanvas.width = 512;
-    signCanvas.height = 128;
-    const ctx = signCanvas.getContext("2d");
-    ctx.fillStyle = "#222";
-    ctx.fillRect(0, 0, 512, 128);
-    ctx.font = "bold 80px 'Courier New', monospace";
-    ctx.fillStyle = "#ead9bc";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    
-    // THE MIRROR RULE: Reverse the text
-    const reversedLabel = label.split("").reverse().join("");
-    ctx.fillText(reversedLabel, 256, 64);
-
-    const signTex = new THREE.CanvasTexture(signCanvas);
-    const sign = new THREE.Mesh(
-        new THREE.PlaneGeometry(w * 0.8, 0.8),
-        new THREE.MeshBasicMaterial({ map: signTex })
+    const roof = new THREE.Mesh(
+        new THREE.ConeGeometry(w * 0.7, h * 0.4, 4),
+        new THREE.MeshStandardMaterial({ color: roofColor, roughness: 0.9 })
     );
-    sign.position.set(0, h * 0.7, d / 2 + 0.05);
-    bGroup.add(sign);
+    roof.position.y = h + h * 0.2;
+    roof.rotation.y = Math.PI / 4;
+    roof.castShadow = true;
+    bGroup.add(roof);
+
+    // Glowing Windows - Step 4: Window Lighting
+    const windowGeo = new THREE.PlaneGeometry(1, 1.5);
+    const windowMat = new THREE.MeshStandardMaterial({
+        color: 0xf6dcb5,
+        emissive: 0xf6dcb5,
+        emissiveIntensity: 0.8,
+        roughness: 0.2
+    });
+    
+    // Add some random windows
+    for (let wy = 3; wy < h - 2; wy += 4) {
+        const winLeft = new THREE.Mesh(windowGeo, windowMat);
+        winLeft.position.set(-w/4, wy, d/2 + 0.05);
+        bGroup.add(winLeft);
+        
+        const winRight = new THREE.Mesh(windowGeo, windowMat);
+        winRight.position.set(w/4, wy, d/2 + 0.05);
+        bGroup.add(winRight);
+    }
+
+    // Add Mirrored Shop Sign if it has a label
+    if (label) {
+        const signCanvas = document.createElement("canvas");
+        signCanvas.width = 512;
+        signCanvas.height = 128;
+        const ctx = signCanvas.getContext("2d");
+        ctx.fillStyle = "#2f2f2f";
+        ctx.fillRect(0, 0, 512, 128);
+        ctx.font = "bold 70px 'Courier New', monospace";
+        ctx.fillStyle = "#ead9bc";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        
+        // THE MIRROR RULE: Reverse the text
+        const reversedLabel = label.split("").reverse().join("");
+        ctx.fillText(reversedLabel, 256, 64);
+
+        const signTex = new THREE.CanvasTexture(signCanvas);
+        const sign = new THREE.Mesh(
+            new THREE.PlaneGeometry(w * 0.8, 0.8),
+            new THREE.MeshBasicMaterial({ map: signTex })
+        );
+        sign.position.set(0, 3, d / 2 + 0.1);
+        bGroup.add(sign);
+    }
 
     bGroup.position.set(x, 0, z);
     townGroup.add(bGroup);
   };
 
   // Populate Town key locations
-  createMirroredBuilding(-15, -20, 8, 12, 8, 0x2a2a35, "BAKERY");
-  createMirroredBuilding(15, -22, 10, 15, 10, 0x352a2a, "BOOKS");
-  createMirroredBuilding(-20, 10, 12, 18, 12, 0x2a352a, "CLOTHING");
-  createMirroredBuilding(25, 5, 8, 10, 6, 0x222222, "7-ELEVEN");
-  
-  // 3. Street Lamps (Flickering)
+  createMirroredBuilding(-15, -20, 8, 12, 8, "BAKERY");
+  createMirroredBuilding(15, -22, 10, 15, 10, "BOOKS");
+  createMirroredBuilding(-20, 10, 12, 18, 12, "CLOTHING", true);
+  createMirroredBuilding(25, 5, 8, 10, 6, "7-ELEVEN");
+  createMirroredBuilding(0, 30, 15, 25, 15, "TOWN HALL", true);
+  createMirroredBuilding(-30, -5, 10, 14, 10, "LIBRARY");
+
+  // 3. Vintage Street Lamps (Victorian Iron)
   const lampPositions = [
-      [-10, -10], [10, -10], [-10, 10], [10, 10], [30, -5], [-30, -5]
+      [-10, -10], [10, -10], [-10, 10], [10, 10], [30, -5], [-30, -5],
+      [-5, -25], [5, 25], [-25, 15], [25, -15], [0, 15], [0, -15],
+      [-20, -5], [20, 5], [-15, 5]
   ];
+  
   const lamps = [];
+  const darkMetal = new THREE.MeshStandardMaterial({ color: 0x2f2f2f, roughness: 0.8, metalness: 0.5 });
+  
   lampPositions.forEach(pos => {
       const lampGroup = new THREE.Group();
-      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.15, 5), new THREE.MeshStandardMaterial({ color: 0x111111 }));
-      post.position.y = 2.5;
+      
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.15, 4), darkMetal);
+      post.position.y = 2;
+      post.castShadow = true;
       lampGroup.add(post);
 
-      const light = new THREE.PointLight(0xffddaa, 0.8, 15);
-      light.position.set(0, 5, 0);
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.05, 0.05), darkMetal);
+      arm.position.set(0.3, 3.8, 0);
+      lampGroup.add(arm);
+
+      // Step 3: Stronger Street Lights
+      const light = new THREE.PointLight(0xffd89c, 3.5, 14);
+      light.position.set(0.6, 3.5, 0);
+      light.castShadow = true;
       lampGroup.add(light);
       
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.3), new THREE.MeshBasicMaterial({ color: 0xffddaa }));
-      head.position.y = 5;
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.5, 0.4), new THREE.MeshBasicMaterial({ color: 0xffd89c }));
+      head.position.set(0.6, 3.5, 0);
       lampGroup.add(head);
 
       lampGroup.position.set(pos[0], 0, pos[1]);
@@ -86,13 +139,29 @@ export function createMirrorTown(scene) {
       lamps.push({ light, offset: Math.random() * 10 });
   });
 
-  // 4. Foggy Surroundings (Silhouettes)
-  for (let i = 0; i < 20; i++) {
-      const dist = 60 + Math.random() * 40;
+  // 4. Props (Benches, Fountains, Mailboxes)
+  const benchGeo = new THREE.BoxGeometry(2, 0.5, 0.8);
+  const benchMat = new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 0.9 });
+  
+  const createBench = (x, z, ry) => {
+      const bench = new THREE.Mesh(benchGeo, benchMat);
+      bench.position.set(x, 0.25, z);
+      bench.rotation.y = ry;
+      bench.castShadow = true;
+      townGroup.add(bench);
+  };
+  
+  createBench(-8, -12, 0);
+  createBench(8, 12, Math.PI);
+  createBench(-12, 8, Math.PI / 2);
+
+  // 5. Foggy Surroundings (Silhouettes)
+  for (let i = 0; i < 30; i++) {
+      const dist = 50 + Math.random() * 50;
       const angle = Math.random() * Math.PI * 2;
       const tree = new THREE.Mesh(
           new THREE.CylinderGeometry(0.5, 1.5, 20),
-          new THREE.MeshBasicMaterial({ color: 0x050505 })
+          new THREE.MeshBasicMaterial({ color: 0x222533 })
       );
       tree.position.set(Math.cos(angle) * dist, 10, Math.sin(angle) * dist);
       townGroup.add(tree);
@@ -104,7 +173,7 @@ export function createMirrorTown(scene) {
     group: townGroup,
     update: (time) => {
         lamps.forEach(l => {
-            l.light.intensity = 0.6 + Math.sin(time * 15 + l.offset) * 0.4;
+            l.light.intensity = 2.5 + Math.sin(time * 15 + l.offset) * 0.3;
         });
     }
   };

@@ -1,8 +1,8 @@
 import * as THREE from "three";
 
 export function createFlashlightSystem(camera) {
-  // Flashlight properties: warm white, intensity 3.5, range 12, narrow angle, soft penumbra
-  const flashlight = new THREE.SpotLight(0xfff4d6, 0, 12, Math.PI * 0.15, 0.8, 1);
+  // Flashlight properties: #fff4d8, intensity 2.2, range 10, angle 25 degrees, soft penumbra
+  const flashlight = new THREE.SpotLight(0xfff4d8, 0, 10, THREE.MathUtils.degToRad(25), 0.8, 1);
   flashlight.castShadow = true;
   flashlight.shadow.mapSize.set(1024, 1024);
   
@@ -18,7 +18,7 @@ export function createFlashlightSystem(camera) {
 
   function enable() {
     enabled = true;
-    flashlight.intensity = 3.5;
+    flashlight.intensity = 2.2;
   }
 
   function update(delta) {
@@ -33,7 +33,7 @@ export function createFlashlightSystem(camera) {
     // Tension flicker every few seconds
     if (flickerTimer <= 0) {
         if (Math.random() > 0.8) {
-            flashlight.intensity = 1.0 + Math.random() * 1.5; // Drop intensity
+            flashlight.intensity = 0.8 + Math.random() * 1.2; // Drop intensity
         }
         if (Math.random() > 0.95) {
             flickerTimer = 3 + Math.random() * 5; // Schedule next flicker
@@ -41,7 +41,7 @@ export function createFlashlightSystem(camera) {
             flickerTimer = 0.1; // Quick successive flickers
         }
     } else {
-        flashlight.intensity = THREE.MathUtils.lerp(flashlight.intensity, 3.5, delta * 5);
+        flashlight.intensity = THREE.MathUtils.lerp(flashlight.intensity, 2.2, delta * 5);
     }
   }
 

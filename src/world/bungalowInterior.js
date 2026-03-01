@@ -6,18 +6,18 @@ export function createBungalowInterior(scene) {
 
   // --- 1. MATERIALS (PBR Style) ---
   const wallMat1 = new THREE.MeshStandardMaterial({
-    color: 0xc7c3b4, // Faded Victorian floral
+    color: 0xd2cdc4, // Vintage warm tone 1
     roughness: 0.95,
     metalness: 0.02,
     bumpScale: 0.02,
   });
   const wallMat2 = new THREE.MeshStandardMaterial({
-    color: 0xb8b1a3, // Cracked paint
+    color: 0xc7c1b8, // Vintage warm tone 2
     roughness: 0.9,
     metalness: 0.02,
   });
   const wallMat3 = new THREE.MeshStandardMaterial({
-    color: 0xa49d8f, // Wooden wall panels
+    color: 0xbcb6ac, // Vintage warm tone 3
     roughness: 0.85,
     metalness: 0.05,
   });

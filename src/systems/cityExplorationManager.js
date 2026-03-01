@@ -78,6 +78,13 @@ export function createCityExplorationManager(scene, camera) {
       osc.stop(audioContext.currentTime + 3);
   }
 
+  function playRandomAmbientSound() {
+      const sounds = ["distant footsteps", "whispering voices", "metal creaking", "distant laughter"];
+      const sound = sounds[Math.floor(Math.random() * sounds.length)];
+      // Placeholder for triggering the respective audio sample
+      // console.log(`[Town Ambient Audio]: ${sound}`);
+  }
+
   // Init audio on first update (to satisfy browser autoplay rules)
   let audioInitialized = false;
 
@@ -99,6 +106,11 @@ export function createCityExplorationManager(scene, camera) {
       if (bellTimer <= 0) {
           playBell();
           bellTimer = 20 + Math.random() * 20; // Every 20-40 seconds
+      }
+
+      // Random ambient sound effects
+      if (Math.random() > 0.998) {
+          playRandomAmbientSound();
       }
   }
 

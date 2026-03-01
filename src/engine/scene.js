@@ -4,12 +4,12 @@ import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
 export function createScene() {
   const scene = new THREE.Scene();
 
-  // Step 2: Volumetric Exponential Fog
-  scene.background = new THREE.Color(0x1f2333);
-  scene.fog = new THREE.FogExp2(0x1f2333, 0.02);
+  // Step 2: Atmospheric Fog - Lightened for visibility
+  scene.background = new THREE.Color(0x8b8b92);
+  scene.fog = new THREE.FogExp2(0x8b8b92, 0.004);
 
-  // Step 1: Ambient Light - Soft environmental fill
-  const ambientLight = new THREE.AmbientLight(0xd6d8e6, 0.35);
+  // Step 1: Global Ambient Light - Strong fill to prevent black areas
+  const ambientLight = new THREE.AmbientLight(0xd6cdbf, 1.0);
   scene.add(ambientLight);
 
   return scene;
