@@ -12,14 +12,12 @@ export function createMirrorGrabSequence(camera, reflectionGroup, onGrabComplete
     active = true;
     elapsed = 0;
     
-    // Play "Finally" whisper spatial audio
-    playWhisperAudio();
-    
-    // Lock the reflection target
+    // Lock the reflection target to jump at camera
     startPos.copy(reflectionGroup.position);
-    targetPos.copy(camera.position); // Lunge at the player
+    targetPos.copy(camera.position); 
     
-    // Initial camera shake parameters can be triggered here if needed
+    // Start distortion audio
+    playGlitchAudio();
   }
 
   function update(delta) {
@@ -32,10 +30,17 @@ export function createMirrorGrabSequence(camera, reflectionGroup, onGrabComplete
     
     reflectionGroup.position.lerpVectors(startPos, targetPos, ease);
     
-    // Apply camera shake
+    // Apply violent camera shake
     if (progress > 0.1) {
-        camera.position.x += (Math.random() - 0.5) * 0.05;
-        camera.position.y += (Math.random() - 0.5) * 0.05;
+        camera.position.x += (Math.random() - 0.5) * 0.1;
+        camera.position.y += (Math.random() - 0.5) * 0.1;
+        camera.rotation.z += (Math.random() - 0.5) * 0.05;
+    }
+
+    // Trigger screen glitch via CSS
+    if (Math.random() > 0.8) {
+        document.body.style.filter = "hue-rotate(90deg) contrast(200%) invert(1)";
+        setTimeout(() => document.body.style.filter = "none", 50);
     }
 
     if (progress >= 1 && active) {
@@ -44,9 +49,8 @@ export function createMirrorGrabSequence(camera, reflectionGroup, onGrabComplete
     }
   }
 
-  function playWhisperAudio() {
-    // Placeholder for spatial audio "Finally"
-    console.log("[Audio] Whisper: 'Finally.'");
+  function playGlitchAudio() {
+    console.log("[Audio] Sudden loud bass impact and glitch sound!");
   }
 
   return { trigger, update };

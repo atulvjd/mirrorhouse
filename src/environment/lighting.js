@@ -4,25 +4,23 @@ export function createLighting(scene) {
   const lightingGroup = new THREE.Group();
   lightingGroup.name = "environmentLighting";
 
-  const moonLight = new THREE.DirectionalLight(0xb7c8ea, 0.35);
-  moonLight.position.set(10, 20, 10);
+  // Step 1: Moonlight Directional Light
+  const moonLight = new THREE.DirectionalLight(0x9fb3ff, 1.2);
+  moonLight.position.set(15, 25, 10);
   moonLight.castShadow = true;
   moonLight.shadow.mapSize.set(2048, 2048);
-  moonLight.shadow.camera.left = -40;
-  moonLight.shadow.camera.right = 40;
-  moonLight.shadow.camera.top = 40;
-  moonLight.shadow.camera.bottom = -40;
-  moonLight.shadow.camera.near = 1;
-  moonLight.shadow.camera.far = 80;
+  moonLight.shadow.radius = 4;
+  moonLight.shadow.bias = -0.0005;
+  moonLight.shadow.camera.left = -50;
+  moonLight.shadow.camera.right = 50;
+  moonLight.shadow.camera.top = 50;
+  moonLight.shadow.camera.bottom = -50;
   lightingGroup.add(moonLight);
 
   const lampStates = [];
+  // Street lamp positions
   const lampPositions = [
-    [-2.4, 4.3],
-    [2.2, 2.3],
-    [-1.9, -0.5],
-    [2.05, -2.8],
-    [-1.65, -5.3],
+    [-2.4, 4.3], [2.2, 2.3], [-1.9, -0.5], [2.05, -2.8], [-1.65, -5.3],
   ];
 
   const metalMaterial = new THREE.MeshStandardMaterial({
@@ -32,8 +30,8 @@ export function createLighting(scene) {
   });
   const glassMaterial = new THREE.MeshStandardMaterial({
     color: 0x6a5a32,
-    emissive: 0x8b6c2e,
-    emissiveIntensity: 0.52,
+    emissive: 0xffcc88, // Warm tungsten
+    emissiveIntensity: 0.8,
     roughness: 0.38,
     metalness: 0.1,
   });
@@ -58,34 +56,35 @@ export function createLighting(scene) {
     head.castShadow = true;
     lamp.add(head);
 
-    const bulbLight = new THREE.PointLight(0xffd58a, 0.6, 10);
+    // Step 1: Lantern / Interior Point Light
+    const bulbLight = new THREE.PointLight(0xffcc88, 1.4, 10);
     bulbLight.position.set(0.64, 2.95, 0);
     bulbLight.castShadow = true;
     lamp.add(bulbLight);
 
     const lightVolume = new THREE.Mesh(
-      new THREE.ConeGeometry(0.58, 2.5, 14, 1, true),
+      new THREE.ConeGeometry(0.8, 3.0, 14, 1, true),
       new THREE.MeshBasicMaterial({
-        color: 0xffd58a,
+        color: 0xffcc88,
         transparent: true,
-        opacity: 0.075,
+        opacity: 0.1,
         depthWrite: false,
       })
     );
-    lightVolume.position.set(0.64, 1.75, 0);
+    lightVolume.position.set(0.64, 1.5, 0);
     lightVolume.rotation.x = Math.PI;
     lamp.add(lightVolume);
 
     lamp.position.set(x, 0, z);
-    lamp.rotation.y = randomBetween(-0.18, 0.18);
     lightingGroup.add(lamp);
 
     lampStates.push({
       light: bulbLight,
       volume: lightVolume.material,
-      baseIntensity: 0.6,
-      phase: randomBetween(0, Math.PI * 2),
-      speed: randomBetween(5.5, 8.8),
+      head: head.material,
+      baseIntensity: 1.4,
+      phase: Math.random() * Math.PI * 2,
+      speed: 5 + Math.random() * 5,
     });
   }
 
@@ -98,14 +97,14 @@ export function createLighting(scene) {
 
     for (let i = 0; i < lampStates.length; i += 1) {
       const state = lampStates[i];
-      const pulse = Math.sin(time * 0.8 + state.phase) * 0.045;
-      const flutter =
-        Math.sin(time * state.speed + state.phase * 1.9) * 0.06 +
-        Math.sin(time * (state.speed * 1.7) + state.phase * 0.5) * 0.03;
-
-      const intensity = Math.max(0.28, state.baseIntensity + pulse + flutter);
+      // Step 1: Lantern flickering logic
+      const flicker = Math.sin(time * state.speed + state.phase) * 0.15 + 
+                      Math.sin(time * state.speed * 2.1 + state.phase) * 0.05;
+      
+      const intensity = Math.max(0.5, state.baseIntensity + flicker);
       state.light.intensity = intensity;
-      state.volume.opacity = 0.06 + intensity * 0.032;
+      state.volume.opacity = 0.08 + (intensity / state.baseIntensity) * 0.04;
+      state.head.emissiveIntensity = 0.6 + (intensity / state.baseIntensity) * 0.4;
     }
   }
 

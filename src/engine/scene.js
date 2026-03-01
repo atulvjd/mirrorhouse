@@ -4,44 +4,13 @@ import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
 export function createScene() {
   const scene = new THREE.Scene();
 
-  // Dark vintage atmosphere: fog and background
-  scene.background = new THREE.Color(0x0c0e12);
-  scene.fog = new THREE.FogExp2(0x0c0e12, 0.035);
+  // Step 2: Volumetric Exponential Fog
+  scene.background = new THREE.Color(0x1f2333);
+  scene.fog = new THREE.FogExp2(0x1f2333, 0.02);
 
-  // 1. Ambient Light - Very subtle bluish gray fill to prevent pitch black.
-  const ambientLight = new THREE.AmbientLight(0x404855, 0.35);
+  // Step 1: Ambient Light - Soft environmental fill
+  const ambientLight = new THREE.AmbientLight(0xd6d8e6, 0.35);
   scene.add(ambientLight);
-
-  // 2. Main Overhead Lamp - Dim warm vintage tungsten.
-  const pointLight = new THREE.PointLight(0xffd6a5, 1.2, 12);
-  pointLight.name = "roomPointLight";
-  pointLight.position.set(0, 2.6, 0);
-  pointLight.castShadow = true;
-  pointLight.shadow.mapSize.width = 2048;
-  pointLight.shadow.mapSize.height = 2048;
-  pointLight.shadow.bias = -0.0002;
-  scene.add(pointLight);
-
-  // 3. Window Moonlight - Cold blue directional light.
-  const moonLight = new THREE.DirectionalLight(0x8fb6ff, 0.5);
-  moonLight.position.set(5, 6, 3);
-  moonLight.castShadow = true;
-  moonLight.shadow.mapSize.set(1024, 1024);
-  scene.add(moonLight);
-
-  // 4. HDRI Environment Map - For realistic reflections.
-  // Using a placeholder HDRI from a public repository for vintage indoor feel.
-  new RGBELoader().load(
-    "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/equirectangular/royal_esplanade_1k.hdr",
-    (texture) => {
-      texture.mapping = THREE.EquirectangularReflectionMapping;
-      scene.environment = texture;
-    }
-  );
-
-  // Store lights for external systems (flicker, distortion, etc.)
-  scene.userData.pointLight = pointLight;
-  scene.userData.moonLight = moonLight;
 
   return scene;
 }

@@ -20,7 +20,7 @@ export function createRenderer() {
 
   renderer.physicallyCorrectLights = true;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.3; // Increased for cinematic readability
+  renderer.toneMappingExposure = 1.25; // Increased for cinematic readability
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   renderer.shadowMap.enabled = true;

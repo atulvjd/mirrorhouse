@@ -5,19 +5,19 @@ export function createGround(scene) {
   groundGroup.name = "environmentGround";
 
   const mudMaterial = new THREE.MeshStandardMaterial({
-    color: 0x171512,
+    color: 0x2f3245, // Gothic deep slate blue
     roughness: 1,
     metalness: 0,
   });
   const wetPatchMaterial = new THREE.MeshStandardMaterial({
-    color: 0x11100f,
-    roughness: 0.58,
-    metalness: 0.02,
+    color: 0x1f2333, // Darker wet patches
+    roughness: 0.4,
+    metalness: 0.1,
   });
   const pathMaterial = new THREE.MeshStandardMaterial({
-    color: 0x2b2a28,
-    roughness: 0.92,
-    metalness: 0.04,
+    color: 0x3a3f58, // Stone path color
+    roughness: 0.9,
+    metalness: 0.05,
   });
 
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), mudMaterial);

@@ -5,17 +5,17 @@ export function createBungalow(scene) {
   bungalow.name = "environmentBungalow";
 
   const wallMaterial = new THREE.MeshStandardMaterial({
-    color: 0x5e6164,
+    color: 0xc7c3b4, // Old vintage walls
     roughness: 0.95,
-    metalness: 0.03,
+    metalness: 0.02,
   });
   const woodMaterial = new THREE.MeshStandardMaterial({
-    color: 0x352d28,
-    roughness: 0.9,
+    color: 0x9c6f6f, // Aged reddish wood
+    roughness: 0.85,
     metalness: 0.05,
   });
   const roofMaterial = new THREE.MeshStandardMaterial({
-    color: 0x31191b,
+    color: 0x3a3f58, // Dark gothic slate
     roughness: 0.9,
     metalness: 0.06,
   });

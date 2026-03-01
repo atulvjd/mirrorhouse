@@ -12,7 +12,7 @@ export function createLetterSystem(drawerContentAnchor) {
   const paper = new THREE.Mesh(
     new THREE.BoxGeometry(0.26, 0.014, 0.18),
     new THREE.MeshStandardMaterial({
-      color: 0xd8ccb4,
+      color: 0xf1e6c8, // Faded old paper
       roughness: 0.96,
       metalness: 0,
     })
@@ -63,6 +63,30 @@ export function createLetterSystem(drawerContentAnchor) {
   document.body.appendChild(overlay);
 
   let active = false;
+  let wasOpened = false; // Track if it was ever opened
+
+  function triggerOminousHum() {
+      try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(45, ctx.currentTime); // Deep hum
+          
+          gain.gain.setValueAtTime(0, ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 2); // Fade in
+          gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 8); // Fade out
+          
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          
+          osc.start();
+          osc.stop(ctx.currentTime + 8);
+      } catch (e) {
+          // Ignore audio errors
+      }
+  }
 
   function showLetter() {
     if (active) {
@@ -70,9 +94,12 @@ export function createLetterSystem(drawerContentAnchor) {
     }
 
     active = true;
+    wasOpened = true;
     overlay.style.display = "flex";
     panel.style.opacity = "0";
     panel.style.transform = "translateY(6px)";
+
+    triggerOminousHum();
 
     if (document.pointerLockElement) {
       document.exitPointerLock();

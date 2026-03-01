@@ -4,64 +4,77 @@ export function createSky(scene) {
   const skyGroup = new THREE.Group();
   skyGroup.name = "environmentSky";
 
+  // Step 3: Cinematic Moonlit Sky
+  // Sky Dome with Gradient-like material
   const skyDome = new THREE.Mesh(
-    new THREE.SphereGeometry(200, 48, 32),
+    new THREE.SphereGeometry(250, 48, 32),
     new THREE.MeshBasicMaterial({
-      color: 0x0a0d14,
+      color: 0x0c0e1a, // Deep dark purple top
       side: THREE.BackSide,
       fog: false,
     })
   );
   skyGroup.add(skyDome);
 
-  const moon = new THREE.Mesh(
-    new THREE.SphereGeometry(3.6, 24, 16),
+  // Horizon Glow
+  const horizon = new THREE.Mesh(
+    new THREE.CylinderGeometry(250, 250, 100, 32, 1, true),
     new THREE.MeshBasicMaterial({
-      color: 0xc5d3ef,
+      color: 0x2a304a, // Horizon purple-blue
       transparent: true,
-      opacity: 0.14,
+      opacity: 0.4,
+      side: THREE.BackSide,
+      fog: false
+    })
+  );
+  horizon.position.y = -20;
+  skyGroup.add(horizon);
+
+  // Large Moon
+  const moon = new THREE.Mesh(
+    new THREE.SphereGeometry(3, 32, 32),
+    new THREE.MeshBasicMaterial({
+      color: 0x9fb3ff, // Pale blue moonlight
+      transparent: true,
+      opacity: 0.8,
       fog: false,
     })
   );
-  moon.position.set(-52, 56, -110);
+  moon.position.set(-40, 60, -120); // Positioned behind the bungalow for silhouettes
   skyGroup.add(moon);
 
-  const primaryStars = createStarLayer(900, 176, 194, 0xbed0ff, 0.9, 0.33);
-  const secondaryStars = createStarLayer(520, 165, 188, 0xe8eeff, 0.6, 0.2);
+  const primaryStars = createStarLayer(1200, 180, 240, 0xbed0ff, 0.8, 0.4);
   skyGroup.add(primaryStars.points);
-  skyGroup.add(secondaryStars.points);
 
+  // Subtle moving clouds
   const cloudGroup = new THREE.Group();
-  const cloudGeometry = new THREE.PlaneGeometry(18, 9);
+  const cloudGeometry = new THREE.PlaneGeometry(30, 15);
   const cloudMaterial = new THREE.MeshBasicMaterial({
     color: 0x1a2130,
     transparent: true,
-    opacity: 0.085,
+    opacity: 0.12,
     depthWrite: false,
     side: THREE.DoubleSide,
     fog: false,
   });
   const cloudStates = [];
 
-  for (let i = 0; i < 18; i += 1) {
+  for (let i = 0; i < 15; i += 1) {
     const cloud = new THREE.Mesh(cloudGeometry, cloudMaterial.clone());
     cloud.position.set(
-      randomBetween(-85, 85),
-      randomBetween(36, 72),
-      randomBetween(-95, 70)
+      randomBetween(-120, 120),
+      randomBetween(40, 80),
+      randomBetween(-150, 50)
     );
     cloud.rotation.x = -Math.PI * 0.5;
-    cloud.rotation.z = randomBetween(0, Math.PI * 2);
-    const scale = randomBetween(0.7, 1.45);
-    cloud.scale.set(scale, scale * randomBetween(0.8, 1.2), 1);
-    cloud.renderOrder = -2;
+    const scale = randomBetween(1.0, 2.5);
+    cloud.scale.set(scale, scale * 0.6, 1);
     cloudGroup.add(cloud);
 
     cloudStates.push({
       mesh: cloud,
       phase: randomBetween(0, Math.PI * 2),
-      speed: randomBetween(0.35, 0.7),
-      baseY: cloud.position.y,
+      speed: randomBetween(0.5, 1.2),
     });
   }
 
@@ -69,43 +82,24 @@ export function createSky(scene) {
   scene.add(skyGroup);
 
   let time = 0;
-  const moonStartY = moon.position.y;
-  const primaryRot = 0.00035;
-  const secondaryRot = -0.00022;
 
   function update(delta) {
     time += delta;
 
-    primaryStars.material.opacity =
-      primaryStars.baseOpacity + Math.sin(time * 0.47) * 0.05;
-    secondaryStars.material.opacity =
-      secondaryStars.baseOpacity + Math.sin(time * 0.71 + 1.2) * 0.045;
-
-    primaryStars.points.rotation.y += primaryRot * delta * 60;
-    secondaryStars.points.rotation.y += secondaryRot * delta * 60;
-
-    moon.position.y = moonStartY + Math.sin(time * 0.03) * 1.15;
-    moon.material.opacity = 0.13 + Math.sin(time * 0.14) * 0.015;
+    primaryStars.points.rotation.y += 0.0001 * delta * 60;
+    moon.material.opacity = 0.75 + Math.sin(time * 0.2) * 0.05;
 
     for (let i = 0; i < cloudStates.length; i += 1) {
       const state = cloudStates[i];
-      const drift = state.speed * delta;
-      state.mesh.position.x += drift;
-      if (state.mesh.position.x > 90) {
-        state.mesh.position.x = -90;
-      }
-
-      state.mesh.position.y = state.baseY + Math.sin(time * 0.12 + state.phase) * 0.45;
-      state.mesh.material.opacity = 0.08 + Math.sin(time * 0.2 + state.phase) * 0.018;
+      state.mesh.position.x += state.speed * delta;
+      if (state.mesh.position.x > 150) state.mesh.position.x = -150;
+      state.mesh.material.opacity = 0.1 + Math.sin(time * 0.3 + state.phase) * 0.04;
     }
   }
 
   return {
     object: skyGroup,
     update,
-    setVisible(visible) {
-      skyGroup.visible = visible;
-    },
   };
 }
 

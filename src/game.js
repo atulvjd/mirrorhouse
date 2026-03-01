@@ -48,10 +48,9 @@ import { createMirrorTransitionSystem } from "./systems/mirrorTransitionSystem.j
 import { loadMirrorWorld } from "./world/mirrorWorldLoader.js";
 
 export function startGame() {
-  const renderer = createRenderer();
+  const { renderer, composer, setupComposer } = createRenderer();
   const scene = createScene();
   const sky = createSky(scene);
-  createFog(scene);
   const ground = createGround(scene);
   const gate = createGate(scene);
   const exteriorBungalow = createBungalow(scene);
@@ -60,14 +59,14 @@ export function startGame() {
   const flicker = createFlickerSystem(scene);
   const glitch = createGlitchSystem(scene);
   
-  // EMERGENCY LIGHT
-  const emergencyLight = new THREE.DirectionalLight(0xffffff, 0.6);
-  emergencyLight.position.set(0, 10, 0);
-  scene.add(emergencyLight);
-  
+  // Post Processing Initialization
   const camera = createCamera();
   camera.position.set(0, 1.6, 12); 
   camera.lookAt(0, 1.6, 0);
+  setupComposer(scene, camera);
+  
+  // Ambient Sound System
+  const ambientSound = createAtmosphereAudio();
   
   const reality = createRealityDistortion(scene, camera);
   const cameraEffects = createCameraEffects(camera);
@@ -182,11 +181,18 @@ export function startGame() {
       room, furniture: furn, drawerSystem: ds, photoSystem: ps, letterSystem: ls, 
       dustParticles: dp, interiorLighting: il, cinematicAtmosphere: atm, flashlight: fl, powerCut: pc,
       update: (delta, locked) => {
+        const time = clock.elapsedTime;
+        if (furn.update) furn.update(time);
         ds.update(delta); ps.update(delta); il.update(delta); dp.update(delta); atm.update(delta); fl.update(delta);
         if (basementSystems) {
             basementSystems.carpetSystem.update(delta);
             basementSystems.hiddenMirror.update(camera, delta);
-            basementSystems.reflectionSys.update(camera, delta, () => basementSystems.grabSeq.trigger());
+            basementSystems.reflectionSys.update(camera, delta, () => {
+                if (basementSystems.hiddenMirror.triggerLiquidDistortion) {
+                    basementSystems.hiddenMirror.triggerLiquidDistortion();
+                }
+                basementSystems.grabSeq.trigger();
+            });
             basementSystems.grabSeq.update(delta);
             basementSystems.transitionSys.update(delta, camera);
         }
@@ -196,6 +202,18 @@ export function startGame() {
     interaction.register(ds.getInteractable().object, ds.getInteractable().callback);
     ps.interactables.forEach(i => interaction.register(i.object, i.callback));
     ls.interactables.forEach(i => interaction.register(i.object, i.callback));
+
+    if (room.doorTrigger) {
+        interaction.register(room.doorTrigger, () => {
+            if (basementUnlocked && !basementLoaded) {
+                loadBasement();
+            } else if (!basementUnlocked) {
+                overlay.setText("It's locked. Maybe I should look around first.");
+                overlay.setVisible(true);
+                setTimeout(() => overlay.setVisible(false), 2000);
+            }
+        });
+    }
 
     window.addEventListener('keydown', (e) => {
         if (e.code === 'KeyE' && interiorLoaded && !basementLoaded && basementUnlocked) loadBasement();
@@ -237,9 +255,11 @@ export function startGame() {
   function animate() {
     requestAnimationFrame(animate);
     const delta = clock.getDelta();
+    const time = clock.elapsedTime;
+
     if (mirrorWorldActive && mirrorWorld) {
         mirrorWorld.update(delta);
-        renderer.render(scene, camera);
+        composer.render();
         return;
     }
 
@@ -252,11 +272,23 @@ export function startGame() {
 
     if (interiorSystems) interiorSystems.update(delta, movement.controls.isLocked);
     else {
-        sky?.update(delta); gate?.update(camera, delta); garden?.update(delta); environmentLighting?.update(delta);
+        sky?.update(delta); 
+        gate?.update(camera, delta); 
+        garden?.update(delta); 
+        environmentLighting?.update(delta);
+        
+        // Global Wind System
+        scene.traverse((child) => {
+            if (child.name === "environmentGarden" || child.name === "environmentBungalow" || child.userData.windAffected) {
+                // Subtle world movement
+                child.rotation.z += Math.sin(time * 0.5 + child.position.x) * 0.0001;
+            }
+        });
     }
 
     if (reflection) reflection.update(camera, delta);
-    renderer.render(scene, camera);
+    
+    composer.render();
   }
 
   function getMirrorDistance() {
@@ -271,6 +303,29 @@ export function startGame() {
   function detectAutonomousDriftSignature() { return false; }
 
   animate();
+}
+
+function createAtmosphereAudio() {
+    console.log("[Audio] Initializing Gothic Ambient Sounds...");
+    
+    let time = 0;
+    
+    function update(delta) {
+        time += delta;
+        // Simulate occasional creaks and ticks for the interior
+        if (Math.random() > 0.995) {
+            // console.log("[Audio] Wood creaking...");
+        }
+        if (Math.random() > 0.98) {
+            // console.log("[Audio] Clock tick...");
+        }
+    }
+
+    return {
+        update,
+        playBell: () => console.log("[Audio] Faint church bell sounds..."),
+        playCrow: () => console.log("[Audio] Occasional crow sound...")
+    };
 }
 
 function registerHallucinationMeshes() {}

@@ -1,12 +1,10 @@
 import * as THREE from "three";
 
 const PHOTO_NAMES = [
-  "Grandmother",
-  "Parents",
-  "Wedding",
-  "Childhood",
-  "Family Portrait",
-  "Unknown Person",
+  "Childhood Photo",
+  "Wedding Photo",
+  "Grandmother with her son",
+  "Grandmother with daughter-in-law",
 ];
 
 export function createPhotoSystem(drawerContentAnchor, story) {
@@ -21,12 +19,12 @@ export function createPhotoSystem(drawerContentAnchor, story) {
     const material = createPhotoMaterial(randomTint());
     const photo = new THREE.Mesh(new THREE.PlaneGeometry(0.32, 0.21), material);
 
-    const row = Math.floor(i / 3);
-    const col = i % 3;
+    const row = Math.floor(i / 2);
+    const col = i % 2;
     photo.position.set(
-      -0.16 + col * 0.16 + randomBetween(-0.02, 0.02),
+      -0.1 + col * 0.2 + randomBetween(-0.02, 0.02),
       0.02 + row * 0.01,
-      -0.1 - row * 0.06 + randomBetween(-0.02, 0.01)
+      -0.1 - row * 0.1 + randomBetween(-0.02, 0.01)
     );
     photo.rotation.x = -Math.PI * 0.5;
     photo.rotation.z = randomBetween(-0.26, 0.26);
@@ -75,7 +73,7 @@ function inspectPhoto(state, story) {
   }
 
   story.showMemory(
-    `${state.label}\n\nThey are smiling.\nTheir eyes look exhausted, like sleep never returned.`
+    `${state.label}\n\nThey are all smiling...\nBut their eyes look incredibly tired.\nThe smiles look slightly forced.`
   );
 }
 

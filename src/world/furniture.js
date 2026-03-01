@@ -4,58 +4,184 @@ export function createFurniture(roomGroup) {
   const furnitureGroup = new THREE.Group();
   furnitureGroup.name = "vintageFurniture";
 
-  const createAgedMaterial = (color, roughness = 0.8, metalness = 0.05) => {
-    return new THREE.MeshStandardMaterial({
-      color: color,
-      roughness: roughness,
-      metalness: metalness,
-    });
+  // Shared Materials for Performance
+  const woodMat1 = new THREE.MeshStandardMaterial({ color: 0x7a5534, roughness: 0.8, metalness: 0.05 });
+  const woodMat2 = new THREE.MeshStandardMaterial({ color: 0x5d4026, roughness: 0.9, metalness: 0.02 });
+  const fabricRed = new THREE.MeshStandardMaterial({ color: 0x6b3c3c, roughness: 1.0 });
+  const fabricBlue = new THREE.MeshStandardMaterial({ color: 0x4f5566, roughness: 1.0 });
+  const brassMat = new THREE.MeshStandardMaterial({ color: 0x6b5b30, roughness: 0.3, metalness: 0.6 });
+  const porcelainMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.2, metalness: 0.1 });
+
+  const lights = [];
+
+  // Helper to add lamps
+  const createLamp = (x, y, z, parent) => {
+    const lampGroup = new THREE.Group();
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.15, 0.3), brassMat);
+    lampGroup.add(base);
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.08), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+    bulb.position.y = 0.2;
+    lampGroup.add(bulb);
+    
+    const light = new THREE.PointLight(0xffcc88, 1.4, 10);
+    light.position.y = 0.2;
+    light.castShadow = true;
+    lampGroup.add(light);
+    
+    lampGroup.position.set(x, y, z);
+    parent.add(lampGroup);
+    lights.push({ light, phase: Math.random() * Math.PI * 2 });
   };
 
-  const darkWalnut = createAgedMaterial(0x1a0f0a, 0.4); 
-  const agedWood = createAgedMaterial(0x2b1d14, 0.9);   
-  const brassMat = createAgedMaterial(0x6b5b30, 0.3, 0.6); 
+  // --- 1. LIVING ROOM (-6 to 6, 2 to 10) ---
+  const livingRoom = new THREE.Group();
+  livingRoom.position.set(0, 0, 6);
+  
+  // Vintage Sofa
+  const sofa = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.8, 1.0), fabricRed);
+  sofa.position.set(0, 0.4, 0);
+  sofa.castShadow = true;
+  const sofaBack = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.8, 0.3), fabricRed);
+  sofaBack.position.set(0, 1.0, -0.35);
+  livingRoom.add(sofa, sofaBack);
 
-  // --- 1. ANTIQUE WOODEN TABLE ---
-  const table = new THREE.Group();
-  const tableTop = new THREE.Mesh(new THREE.BoxGeometry(2, 0.08, 1), darkWalnut);
-  tableTop.position.y = 0.75;
-  tableTop.castShadow = true;
-  tableTop.receiveShadow = true;
-  table.add(tableTop);
+  // Coffee Table
+  const coffeeTable = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.4, 0.8), woodMat1);
+  coffeeTable.position.set(0, 0.2, 1.2);
+  coffeeTable.castShadow = true;
+  livingRoom.add(coffeeTable);
 
-  const legGeo = new THREE.BoxGeometry(0.08, 0.75, 0.08);
-  const legPositions = [
-    [-0.9, 0.375, -0.4], [0.9, 0.375, -0.4],
-    [-0.9, 0.375, 0.4], [0.9, 0.375, 0.4]
-  ];
-  legPositions.forEach(pos => {
-    const leg = new THREE.Mesh(legGeo, darkWalnut);
-    leg.position.set(...pos);
-    leg.castShadow = true;
-    leg.receiveShadow = true;
-    table.add(leg);
+  // Old Armchair
+  const armchair = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.8, 1.0), fabricBlue);
+  armchair.position.set(-2.5, 0.4, 0.5);
+  armchair.rotation.y = Math.PI / 4;
+  armchair.castShadow = true;
+  livingRoom.add(armchair);
+
+  // Fireplace
+  const fireplace = new THREE.Group();
+  const fpMantle = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.5, 0.6), woodMat2);
+  fpMantle.position.set(0, 0.75, -2.5);
+  const fpHole = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.0, 0.61), new THREE.MeshBasicMaterial({ color: 0x111111 }));
+  fpHole.position.set(0, 0.5, -2.5);
+  fireplace.add(fpMantle, fpHole);
+  livingRoom.add(fireplace);
+
+  // Grandfather Clock
+  const clock = new THREE.Mesh(new THREE.BoxGeometry(0.6, 2.4, 0.4), woodMat2);
+  clock.position.set(3.5, 1.2, -2.5);
+  clock.castShadow = true;
+  livingRoom.add(clock);
+  
+  furnitureGroup.add(livingRoom);
+
+  // --- 2. DINING ROOM (6 to 12, 2 to 10) ---
+  const diningRoom = new THREE.Group();
+  diningRoom.position.set(9, 0, 6);
+
+  // Long Dining Table
+  const dTable = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.1, 1.2), woodMat1);
+  dTable.position.set(0, 0.9, 0);
+  dTable.castShadow = true;
+  diningRoom.add(dTable);
+  const dLegGeo = new THREE.BoxGeometry(0.1, 0.9, 0.1);
+  [[-1.4, -0.5], [1.4, -0.5], [-1.4, 0.5], [1.4, 0.5]].forEach(pos => {
+      const leg = new THREE.Mesh(dLegGeo, woodMat1);
+      leg.position.set(pos[0], 0.45, pos[1]);
+      diningRoom.add(leg);
   });
-  table.position.set(0, 0, 0); 
-  furnitureGroup.add(table);
 
-  // --- 2. VINTAGE DRAWER CABINET ---
+  // Chairs & Plates
+  for (let i = 0; i < 3; i++) {
+      const chair1 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.5, 0.4), woodMat2);
+      chair1.position.set(-1.0 + i, 0.25, -0.8);
+      diningRoom.add(chair1);
+      
+      const chair2 = chair1.clone();
+      chair2.position.set(-1.0 + i, 0.25, 0.8);
+      diningRoom.add(chair2);
+
+      // Plates
+      const plate1 = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.02, 16), porcelainMat);
+      plate1.position.set(-1.0 + i, 0.96, -0.3);
+      diningRoom.add(plate1);
+
+      const plate2 = plate1.clone();
+      plate2.position.set(-1.0 + i, 0.96, 0.3);
+      diningRoom.add(plate2);
+  }
+
+  // Candle Stand
+  createLamp(0, 0.95, 0, diningRoom);
+  
+  furnitureGroup.add(diningRoom);
+
+  // --- 3. BEDROOM (0 to 12, -10 to 2) ---
+  const bedroom = new THREE.Group();
+  bedroom.position.set(6, 0, -6);
+
+  // Old Wooden Bed
+  const bed = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.5, 3.0), woodMat1);
+  bed.position.set(0, 0.25, 0);
+  bed.castShadow = true;
+  const mattress = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.2, 2.8), new THREE.MeshStandardMaterial({ color: 0xdddddd }));
+  mattress.position.set(0, 0.6, 0);
+  bedroom.add(bed, mattress);
+
+  // Wardrobe
+  const wardrobe = new THREE.Mesh(new THREE.BoxGeometry(1.8, 2.5, 0.8), woodMat2);
+  wardrobe.position.set(-3.5, 1.25, -2);
+  wardrobe.castShadow = true;
+  bedroom.add(wardrobe);
+
+  // Bedside Table & Lamp
+  const bedside = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), woodMat1);
+  bedside.position.set(-1.5, 0.3, -1);
+  bedside.castShadow = true;
+  bedroom.add(bedside);
+  createLamp(-1.5, 0.6, -1, bedroom);
+
+  furnitureGroup.add(bedroom);
+
+  // --- 4. LIBRARY CORNER (-12 to -6, 2 to 10) ---
+  const library = new THREE.Group();
+  library.position.set(-9, 0, 6);
+
+  const bookshelf = new THREE.Mesh(new THREE.BoxGeometry(2.5, 2.8, 0.6), woodMat2);
+  bookshelf.position.set(0, 1.4, -2.5);
+  bookshelf.castShadow = true;
+  library.add(bookshelf);
+
+  // Scattered Books
+  const bookGeo = new THREE.BoxGeometry(0.2, 0.3, 0.05);
+  const bookMat = new THREE.MeshStandardMaterial({ color: 0x332211 });
+  for (let i = 0; i < 15; i++) {
+      const book = new THREE.Mesh(bookGeo, bookMat);
+      book.position.set((Math.random() - 0.5) * 2, 0.15, (Math.random() - 0.5) * 2);
+      book.rotation.x = Math.PI / 2;
+      book.rotation.z = Math.random() * Math.PI;
+      library.add(book);
+  }
+
+  // Reading Chair & Lamp
+  const readingChair = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.8, 1.0), fabricRed);
+  readingChair.position.set(-1, 0.4, 0);
+  readingChair.rotation.y = Math.PI / 6;
+  library.add(readingChair);
+  createLamp(1, 1.2, 0, library);
+
+  furnitureGroup.add(library);
+
+  // --- 5. DRAWER CABINET (Living Room corner) ---
   const cabinet = new THREE.Group();
-  const cabBody = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.9, 0.5), agedWood);
+  const cabBody = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.9, 0.5), woodMat2);
   cabBody.position.y = 0.45;
-  cabBody.castShadow = true;
-  cabBody.receiveShadow = true;
   cabinet.add(cabBody);
 
-  // Functional Drawer for the Story System
   const drawerTrack = new THREE.Group();
   drawerTrack.position.set(0, 0.7, 0.2); 
-  
-  const drawerFront = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.2, 0.1), agedWood);
-  drawerFront.castShadow = true;
-  drawerFront.receiveShadow = true;
+  const drawerFront = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.2, 0.1), woodMat1);
   drawerTrack.add(drawerFront);
-
   const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.1, 8), brassMat);
   handle.rotation.z = Math.PI / 2;
   handle.position.z = 0.06;
@@ -66,95 +192,17 @@ export function createFurniture(roomGroup) {
   drawerTrack.add(contentAnchor);
   cabinet.add(drawerTrack);
 
-  cabinet.position.set(-3.5, 0, -4.5);
+  cabinet.position.set(-4, 0, 2); // Near hallway
+  cabinet.rotation.y = Math.PI / 2;
   furnitureGroup.add(cabinet);
 
-  // --- 3. FAMILY PHOTO FRAMES ---
-  const photoInteractables = [];
-  const createFrame = (x, y, z, ry = 0) => {
-    const frameGroup = new THREE.Group();
-    const frameBorder = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.6, 0.05), agedWood);
-    frameGroup.add(frameBorder);
-    
-    const photoGeo = new THREE.PlaneGeometry(0.4, 0.5);
-    const photoMat = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.9 });
-    const photo = new THREE.Mesh(photoGeo, photoMat);
-    photo.position.z = 0.03;
-    frameGroup.add(photo);
-    
-    frameGroup.position.set(x, y, z);
-    frameGroup.rotation.y = ry;
-    return frameGroup;
-  };
-
-  const photo1 = createFrame(-3.5, 1.8, -4.95); 
-  const photo2 = createFrame(-2.8, 1.8, -4.95);
-  const photo3 = createFrame(-4.2, 1.8, -4.95);
-  furnitureGroup.add(photo1, photo2, photo3);
-
-  // --- 4. CANDLE HOLDERS ---
-  const createCandle = (x, z) => {
-    const candleGroup = new THREE.Group();
-    const holder = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.08, 0.2, 12), brassMat);
-    candleGroup.add(holder);
-    const wax = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.15, 8), new THREE.MeshStandardMaterial({ color: 0xddddcc, roughness: 0.9 }));
-    wax.position.y = 0.15;
-    candleGroup.add(wax);
-    candleGroup.position.set(x, 0.8, z);
-    return candleGroup;
-  };
-  table.add(createCandle(0.4, 0.2));
-  table.add(createCandle(-0.3, -0.1));
-
-  // --- 5. GRANDFATHER CLOCK ---
-  const clock = new THREE.Group();
-  const clockBody = new THREE.Mesh(new THREE.BoxGeometry(0.6, 2.4, 0.4), agedWood);
-  clockBody.position.y = 1.2;
-  clockBody.castShadow = true;
-  clockBody.receiveShadow = true;
-  clock.add(clockBody);
-  const face = new THREE.Mesh(new THREE.CircleGeometry(0.2, 32), new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.5 }));
-  face.position.set(0, 1.9, 0.21);
-  clock.add(face);
-  const handMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
-  const hourHand = new THREE.Mesh(new THREE.PlaneGeometry(0.01, 0.1), handMat);
-  hourHand.position.set(0, 1.9, 0.22);
-  hourHand.rotation.z = Math.PI * (11/6 + 58/360); 
-  clock.add(hourHand);
-  const minuteHand = new THREE.Mesh(new THREE.PlaneGeometry(0.01, 0.15), handMat);
-  minuteHand.position.set(0, 1.9, 0.22);
-  minuteHand.rotation.z = Math.PI * (58/30);
-  clock.add(minuteHand);
-  clock.position.set(4.2, 0, -4.5);
-  furnitureGroup.add(clock);
-
-  // --- 6. BOOKSHELF ---
-  const shelf = new THREE.Group();
-  const shelfFrame = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.2, 0.4), agedWood);
-  shelfFrame.position.y = 1.1;
-  shelf.add(shelfFrame);
-  for (let i = 0; i < 4; i++) {
-    const level = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.05, 0.35), agedWood);
-    level.position.y = 0.4 + i * 0.5;
-    shelf.add(level);
-    for (let j = 0; j < 5; j++) {
-      const book = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.3, 0.25), new THREE.MeshStandardMaterial({ color: [0x223322, 0x332222, 0x111111][j%3] }));
-      book.position.set(-0.4 + j * 0.2, 0.58 + i * 0.5, 0.05);
-      book.rotation.z = (Math.random() - 0.5) * 0.3;
-      shelf.add(book);
-    }
-  }
-  shelf.position.set(4.2, 0, 4.2);
-  shelf.rotation.y = -Math.PI / 4;
-  furnitureGroup.add(shelf);
-
-  // --- 7. VINTAGE TRUNK ---
-  const trunk = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.6, 0.6), createAgedMaterial(0x3d0a0a, 0.9));
-  trunk.position.set(-3.8, 0.3, 3.5);
-  trunk.rotation.y = Math.PI / 6;
-  trunk.castShadow = true;
-  trunk.receiveShadow = true;
-  furnitureGroup.add(trunk);
+  // --- 6. DECORATIONS ---
+  // Paintings / Mirrors
+  const paintingGeo = new THREE.BoxGeometry(1.2, 0.8, 0.05);
+  const paintingMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9 });
+  const painting = new THREE.Mesh(paintingGeo, paintingMat);
+  painting.position.set(0, 2.0, 9.9);
+  furnitureGroup.add(painting);
 
   roomGroup.add(furnitureGroup);
 
@@ -162,6 +210,12 @@ export function createFurniture(roomGroup) {
     group: furnitureGroup,
     drawer: drawerTrack,
     drawerContentAnchor: contentAnchor,
-    photoInteractables: [] // We'll populate this if needed
+    update: (time) => {
+        // Flicker lamps using sine wave variation
+        lights.forEach(l => {
+            const flicker = Math.sin(time * 10 + l.phase) * 0.1 + Math.sin(time * 25) * 0.05;
+            l.light.intensity = 1.4 + flicker;
+        });
+    }
   };
 }

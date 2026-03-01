@@ -5,17 +5,17 @@ export function createGate(scene) {
   gate.name = "environmentGate";
 
   const stoneMaterial = new THREE.MeshStandardMaterial({
-    color: 0x5b5551,
+    color: 0x3a3f58, // Gothic stone blue
     roughness: 0.95,
     metalness: 0.03,
   });
   const ironMaterial = new THREE.MeshStandardMaterial({
-    color: 0x16181c,
-    roughness: 0.9,
-    metalness: 0.7,
+    color: 0x1f2333, // Deep dark iron
+    roughness: 0.8,
+    metalness: 0.6,
   });
   const rustMaterial = new THREE.MeshStandardMaterial({
-    color: 0x4b3023,
+    color: 0x9c6f6f, // Aged reddish rust
     roughness: 1,
     metalness: 0,
   });

@@ -70,7 +70,7 @@ function createDeadTree() {
   const trunk = new THREE.Mesh(
     new THREE.CylinderGeometry(0.17, 0.34, trunkHeight, 9),
     new THREE.MeshStandardMaterial({
-      color: 0x28201b,
+      color: 0x9c6f6f, // Aged wood trunks
       roughness: 0.96,
       metalness: 0.02,
     })
@@ -81,7 +81,7 @@ function createDeadTree() {
   tree.add(trunk);
 
   const branchMaterial = new THREE.MeshStandardMaterial({
-    color: 0x1f1a16,
+    color: 0x4b4f6e, // Gothic foliage
     roughness: 0.97,
     metalness: 0.01,
   });
