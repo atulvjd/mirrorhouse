@@ -1,146 +1,109 @@
 import * as THREE from "three";
 
-const WHISPERS = [
-  "You still smile the right way.",
-  "Your grandmother knew.",
-  "You don't belong here.",
-  "The mirror remembers.",
-];
-
-function createStitchedMouth(material) {
-  const mouth = new THREE.Group();
-  for (let i = 0; i < 6; i += 1) {
-    const stitch = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.01, 0.01, 0.25, 6),
-      material
-    );
-    stitch.rotation.x = Math.PI / 2;
-    stitch.position.set((i - 2.5) * 0.14, 0, 0.08);
-    mouth.add(stitch);
-  }
-  return mouth;
-}
-
-export function createNpcSystem(scene, camera, storyFragments) {
-  const npcRoot = new THREE.Group();
-  npcRoot.name = "npcSystem";
-
-  const states = [];
-  const basePositions = [
-    [4.5, -2.4],
-    [-4.2, -0.4],
-    [3.6, 1.8],
-    [-3.4, 2.4],
-    [2.2, 4.5],
-    [-2.6, 5.6],
+export function createNPCSystem(scene, story) {
+  const npcs = [];
+  const DIALOGUES = [
+    "You look different.",
+    "You do not belong here.",
+    "Your face isn't stitched.",
+    "You should leave.",
+    "Shadows don't lie.",
+    "Is it real over there?"
   ];
 
-  const bodyMaterial = new THREE.MeshStandardMaterial({
-    color: 0x423a34,
-    roughness: 0.92,
-    metalness: 0.03,
-  });
-  const headMaterial = new THREE.MeshStandardMaterial({
-    color: 0xf0e7dd,
-    roughness: 0.9,
-    metalness: 0,
-  });
-  const shadowMaterial = new THREE.MeshBasicMaterial({
-    color: "rgba(0,0,0,0.25)",
-  });
+  function spawnNPC(x, z) {
+    const npcGroup = new THREE.Group();
+    
+    // 1. Character Body (Vintage/Pale)
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.9 });
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 1.7), bodyMat);
+    body.position.y = 0.85;
+    npcGroup.add(body);
 
-  for (let i = 0; i < basePositions.length; i += 1) {
-    const [x, z] = basePositions[i];
-    const npc = createNpc(bodyMaterial, headMaterial, shadowMaterial);
-    npc.root.position.set(x + randomBetween(-0.4, 0.4), 0, z + randomBetween(-0.3, 0.3));
-    npc.root.rotation.y = randomBetween(-0.2, 0.2);
-    npcRoot.add(npc.root);
-    states.push({
-      ...npc,
-      shadowTarget: npc.shadow.position.clone(),
-      shadowTimer: 0,
-      whisperCooldown: randomBetween(3, 6),
-      whisperPhase: randomBetween(0, Math.PI),
-    });
-  }
+    // 2. Stitched Upside-Down Smile
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), bodyMat);
+    head.position.y = 1.8;
+    npcGroup.add(head);
 
-  scene.add(npcRoot);
+    const smileGeo = new THREE.TorusGeometry(0.12, 0.015, 8, 16, Math.PI);
+    const smileMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+    const smile = new THREE.Mesh(smileGeo, smileMat);
+    smile.position.set(0, 1.75, 0.28);
+    // Mirror World: Smiles curve DOWN
+    smile.rotation.x = 0; 
+    npcGroup.add(smile);
 
-  function update(delta) {
-    for (let i = 0; i < states.length; i += 1) {
-      const state = states[i];
-      state.shadowTimer += delta;
-
-      if (state.shadowTimer >= 5) {
-        state.shadowTarget.copy(getRandomAnchor(state.shadow.position));
-        state.shadowTimer = 0;
-      }
-
-      state.shadow.position.lerp(state.shadowTarget, Math.min(1, delta * 0.4));
-      state.root.position.lerp(state.shadow.position, Math.min(1, delta * 0.6));
-
-      const distanceToPlayer = state.root.position.distanceTo(camera.position);
-      if (distanceToPlayer < 4 && state.whisperCooldown <= 0) {
-        const whisper = WHISPERS[Math.floor(Math.random() * WHISPERS.length)];
-        storyFragments?.showFragment(whisper, 2800);
-        state.whisperCooldown = randomBetween(3.5, 7);
-      } else {
-        state.whisperCooldown -= delta;
-      }
-
-      if (camera.position.distanceTo(state.root.position) < 2.2) {
-        state.root.lookAt(camera.position.x, state.root.position.y, camera.position.z);
-      }
+    // Stitch Marks
+    for (let i = 0; i < 5; i++) {
+        const stitch = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.05, 0.01), smileMat);
+        const angle = (i / 4) * Math.PI;
+        stitch.position.set(Math.cos(angle) * 0.12, 1.75 + Math.sin(angle) * 0.05, 0.29);
+        npcGroup.add(stitch);
     }
-  }
 
-  function getRandomAnchor(reference) {
-    const radius = 5;
-    const theta = randomBetween(0, Math.PI * 2);
-    return new THREE.Vector3(
-      reference.x + Math.cos(theta) * randomBetween(1.4, radius),
-      0,
-      reference.z + Math.sin(theta) * randomBetween(1, radius)
+    // 3. Shadow Entity (Reversed Physics: Shadow Leads)
+    const shadow = new THREE.Mesh(
+        new THREE.CircleGeometry(0.5, 16),
+        new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.4 })
     );
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.position.y = 0.01;
+    scene.add(shadow);
+
+    const npc = {
+      group: npcGroup,
+      shadow: shadow,
+      targetPos: new THREE.Vector3(x + 5, 0, z + 5),
+      velocity: new THREE.Vector3(0.015, 0, 0.015),
+      dialogue: DIALOGUES[Math.floor(Math.random() * DIALOGUES.length)],
+      lastTurn: 0,
+      
+      update: (time, camera) => {
+        // Shadow leads, NPC follows
+        shadow.position.add(npc.velocity);
+        
+        // Boundaries: Walk in circles or back and forth
+        if (shadow.position.distanceTo(new THREE.Vector3(x, 0, z)) > 10) {
+            npc.velocity.multiplyScalar(-1);
+        }
+
+        // NPC follows shadow with delay
+        npcGroup.position.lerp(shadow.position, 0.03);
+        
+        // Face the movement direction
+        npcGroup.lookAt(shadow.position.clone().add(npc.velocity));
+
+        // Look at player if close
+        const distToPlayer = npcGroup.position.distanceTo(camera.position);
+        if (distToPlayer < 5) {
+            npcGroup.lookAt(camera.position);
+            // Stare slightly longer
+        }
+      },
+
+      interact: () => {
+          if (story) story.showMemory(npc.dialogue);
+      }
+    };
+
+    npcGroup.position.set(x, 0, z);
+    shadow.position.set(x + 1, 0, z + 1);
+    npcGroup.userData.isNPC = true;
+    npcGroup.userData.npcRef = npc;
+    npcGroup.userData.inspectPrompt = "Talk";
+
+    npcs.push(npc);
+    scene.add(npcGroup);
   }
 
-  return {
-    group: npcRoot,
-    update,
-  };
-}
-
-function createNpc(bodyMaterial, headMaterial, shadowMaterial) {
-  const group = new THREE.Group();
-  group.name = "npc";
-
-  const body = new THREE.Mesh(new THREE.BoxGeometry(0.45, 1.4, 0.35), bodyMaterial);
-  body.position.y = 0.85;
-  body.castShadow = true;
-  body.receiveShadow = true;
-  group.add(body);
-
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.28, 16, 12), headMaterial);
-  head.position.y = 1.75;
-  head.castShadow = true;
-  group.add(head);
-
-  const mouth = createStitchedMouth(bodyMaterial);
-  mouth.position.set(0, 1.63, 0.25);
-  head.add(mouth);
-
-  const shadow = new THREE.Mesh(new THREE.CircleGeometry(0.45, 12), shadowMaterial);
-  shadow.rotation.x = -Math.PI / 2;
-  shadow.position.y = 0.01;
-  shadow.position.z = 0;
-  group.add(shadow);
+  // Initial Population
+  spawnNPC(-5, -5);
+  spawnNPC(15, -10);
+  spawnNPC(-10, 15);
+  spawnNPC(20, 20);
 
   return {
-    root: group,
-    shadow,
+    npcs,
+    update: (time, camera) => npcs.forEach(n => n.update(time, camera))
   };
-}
-
-function randomBetween(min, max) {
-  return min + Math.random() * (max - min);
 }
