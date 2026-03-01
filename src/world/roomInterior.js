@@ -14,7 +14,7 @@ export function createRoomInterior(scene) {
 
   // --- 1. FLOOR ---
   const floorGeo = new THREE.PlaneGeometry(10, 10);
-  const floorMat = createVintageMaterial(0x1a0f0a, 0.85); 
+  const floorMat = createVintageMaterial(0x2b1d14, 0.85); // Dark oak
   const floor = new THREE.Mesh(floorGeo, floorMat);
   floor.rotation.x = -Math.PI / 2;
   floor.position.y = 0;
@@ -22,7 +22,7 @@ export function createRoomInterior(scene) {
   roomGroup.add(floor);
 
   // --- 2. WALLS ---
-  const wallMat = createVintageMaterial(0x2b0a0a, 0.9);
+  const wallMat = createVintageMaterial(0xd2b48c, 0.9); // Warm vintage beige
   const wallHeight = 3;
   const wallWidth = 10;
 
@@ -51,7 +51,7 @@ export function createRoomInterior(scene) {
   roomGroup.add(rightWall);
 
   // --- 3. MOLDINGS ---
-  const baseboardMat = createVintageMaterial(0x150c08, 0.7, 0.1);
+  const baseboardMat = createVintageMaterial(0x2b1d14, 0.7, 0.1);
   const bbHeight = 0.15;
   const bbDepth = 0.05;
   const createBaseboard = (w, d, h, x, z, ry = 0) => {
@@ -77,7 +77,7 @@ export function createRoomInterior(scene) {
   roomGroup.add(ceiling);
 
   // --- 5. CEILING BEAMS ---
-  const beamMat = createVintageMaterial(0x150c08, 0.8);
+  const beamMat = createVintageMaterial(0x2b1d14, 0.8);
   for (let i = -4; i <= 4; i += 2) {
     const beam = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.3, 10), beamMat);
     beam.position.set(i, wallHeight - 0.15, 0);
@@ -96,7 +96,7 @@ export function createRoomInterior(scene) {
   roomGroup.add(carpet);
 
   // --- 7. DOOR FRAME ---
-  const frameMat = createVintageMaterial(0x1a0f0a, 0.7);
+  const frameMat = createVintageMaterial(0x2b1d14, 0.7);
   const frameGroup = new THREE.Group();
   const sideLeft = new THREE.Mesh(new THREE.BoxGeometry(0.15, 2.2, 0.2), frameMat);
   sideLeft.position.set(-0.7, 1.1, -4.9);

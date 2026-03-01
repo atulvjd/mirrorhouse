@@ -26,6 +26,8 @@ import { createGround } from "./environment/ground.js";
 import { createInteriorLighting } from "./interior/lightingInterior.js";
 import { createRoomInterior } from "./world/roomInterior.js";
 import { createFurniture } from "./world/furniture.js";
+import { createAtmosphere } from "./world/atmosphere.js";
+import { createStoryDetails } from "./world/storyDetails.js";
 import { createDrawerSystem } from "./interior/drawerSystem.js";
 import { createPhotoSystem } from "./interior/photoSystem.js";
 import { createLetterSystem } from "./interior/letterSystem.js";
@@ -199,6 +201,8 @@ export function startGame() {
 
     const interiorRoom = createRoomInterior(scene);
     const furniture = createFurniture(interiorRoom.group);
+    const cinematicAtmosphere = createAtmosphere(scene);
+    createStoryDetails(scene);
     
     const drawerSystem = createDrawerSystem(
       furniture.drawer,
@@ -217,11 +221,13 @@ export function startGame() {
       letterSystem,
       dustParticles,
       interiorLighting,
+      cinematicAtmosphere,
       update: (delta, locked) => {
         drawerSystem.update(delta);
         photoSystem.update(delta);
         interiorLighting.update(delta);
         dustParticles.update(delta);
+        cinematicAtmosphere.update(delta);
       }
     };
 
