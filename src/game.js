@@ -33,6 +33,7 @@ import { createPhotoSystem } from "./interior/photoSystem.js";
 import { createLetterSystem } from "./interior/letterSystem.js";
 import { createDustParticles } from "./interior/dustParticles.js";
 import { createInteriorLighting } from "./interior/lightingInterior.js";
+<<<<<<< HEAD
 import { createMirrorWorldScene } from "./mirrorWorld/mirrorWorldScene.js";
 import { createBasementEnvironment } from "./basement/basementEnvironment.js";
 import { createBasementStaircase } from "./basement/staircase.js";
@@ -41,6 +42,9 @@ import { createPowerCutEvent } from "./basement/powerCutEvent.js";
 import { createCarpetSystem } from "./basement/carpetSystem.js";
 import { createHiddenMirror } from "./basement/hiddenMirror.js";
 import { createBasementSound } from "./basement/basementSound.js";
+=======
+import { createRoomInterior } from "./world/roomInterior.js";
+>>>>>>> 3324f12 (Gem Inhancement 2)
 
 export function startGame() {
   // Initialize the core Three.js objects.
@@ -225,6 +229,7 @@ export function startGame() {
       return;
     }
 
+    const interiorRoom = createRoomInterior(scene);
     const interior = createHouseInterior(scene);
     const furniture = createFurniture(interior.group, interior.anchors);
     const drawerSystem = createDrawerSystem(
