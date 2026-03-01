@@ -343,15 +343,8 @@ export function startGame() {
     const transitionSys = createMirrorTransitionSystem();
     const grabSeq = createMirrorGrabSequence(camera, reflectionSys.group, () => {
         transitionSys.triggerTransition(() => {
-            mirrorWorld = loadMirrorWorld(scene, camera, story);
+            mirrorWorld = loadMirrorWorld(scene, camera, story, interaction, overlay);
             mirrorWorldActive = true;
-            
-            // Register NPC interactions in the mirror world
-            scene.traverse(node => {
-                if (node.userData.isNPC) {
-                    interaction.register(node, () => node.userData.npcRef.interact());
-                }
-            });
         });
     });
 

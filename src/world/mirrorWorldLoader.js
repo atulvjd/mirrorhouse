@@ -3,8 +3,11 @@ import { createBungalowInterior } from "./bungalowInterior.js";
 import { createAtmosphere } from "./atmosphere.js";
 import { createMirrorTown } from "./mirrorTownGenerator.js";
 import { createNPCSystem } from "../systems/npcSystem.js";
+import { createMirrorStoreEnvironment } from "./mirrorStoreEnvironment.js";
+import { createNPCStareSystem } from "../systems/npcStareSystem.js";
+import { createStoreCinematicEvent } from "../systems/storeCinematicEvent.js";
 
-export function loadMirrorWorld(scene, camera, story) {
+export function loadMirrorWorld(scene, camera, story, interaction, overlay) {
   // 1. Clear old environment
   const toRemove = [];
   scene.traverse(child => {
@@ -14,16 +17,21 @@ export function loadMirrorWorld(scene, camera, story) {
   });
   toRemove.forEach(child => scene.remove(child));
 
-  // 2. Load Mirrored Town & NPCs
+  // 2. Load Mirrored Town & Normal NPCs
   const town = createMirrorTown(scene);
   const npcs = createNPCSystem(scene, story);
 
-  // 3. Load Inverted Bungalow
+  // 3. Load Store, Store NPCs & Cinematic Event
+  const store = createMirrorStoreEnvironment(scene);
+  const stareSystem = createNPCStareSystem(scene, camera, store.doorPosition);
+  const cinematic = createStoreCinematicEvent(scene, interaction, overlay, story, store, stareSystem);
+
+  // 4. Load Inverted Bungalow
   const mirrorBungalow = createBungalowInterior(scene);
   mirrorBungalow.group.scale.x = -1;
   mirrorBungalow.group.name = "mirrorWorldBungalow";
 
-  // 4. Mirror World Lighting & Atmosphere
+  // 5. Mirror World Lighting & Atmosphere
   const mirrorAtmosphere = createAtmosphere(scene);
   scene.fog = new THREE.FogExp2(0x1a2530, 0.05);
   scene.background = new THREE.Color(0x1a2530);
@@ -40,7 +48,7 @@ export function loadMirrorWorld(scene, camera, story) {
       }
   });
 
-  // 5. Position Player
+  // 6. Position Player
   camera.position.set(0, 1.2, 0);
   camera.rotation.set(Math.PI / 2, 0, 0);
   
@@ -59,9 +67,19 @@ export function loadMirrorWorld(scene, camera, story) {
       }
       
       town.update(time);
+      store.update(time);
       npcs.update(time, camera);
+      stareSystem.update(delta);
+      cinematic.update(camera);
       mirrorAtmosphere.update(delta);
   }
+
+  // Allow interaction with town NPCs
+  scene.traverse(node => {
+      if (node.userData.isNPC) {
+          interaction.register(node, () => node.userData.npcRef.interact());
+      }
+  });
 
   return { update };
 }
