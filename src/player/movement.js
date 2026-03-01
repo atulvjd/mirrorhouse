@@ -17,6 +17,8 @@ export function createPlayerControls(camera, renderer) {
   const walkSpeed = 6;
   const acceleration = 60;
   const damping = 10;
+  let time = 0;
+  const initialCameraY = camera.position.y;
 
   function onKeyDown(event) {
     switch (event.code) {
@@ -67,6 +69,12 @@ export function createPlayerControls(camera, renderer) {
   document.addEventListener("click", onClick);
 
   function update(delta) {
+    if (!controls.isLocked) {
+      return;
+    }
+
+    time += delta;
+
     // Apply damping so movement eases in and out instead of stepping per frame.
     const dampingFactor = Math.min(1, damping * delta);
     velocity.x -= velocity.x * dampingFactor;
@@ -92,12 +100,17 @@ export function createPlayerControls(camera, renderer) {
       velocity.z *= scale;
     }
 
-    if (!controls.isLocked) {
-      return;
-    }
-
     controls.moveRight(velocity.x * delta);
     controls.moveForward(velocity.z * delta);
+
+    // --- CINEMATIC CAMERA BREATHING ---
+    // Subtle vertical and horizontal sway
+    const breathingSpeed = 1.2;
+    const breathingAmount = 0.02;
+    const movementMultiplier = speed > 0.1 ? 2.5 : 1.0; // Stronger when walking
+
+    camera.position.y = initialCameraY + Math.sin(time * breathingSpeed) * breathingAmount * movementMultiplier;
+    camera.rotation.z = Math.cos(time * breathingSpeed * 0.5) * 0.003 * movementMultiplier;
   }
 
   return {

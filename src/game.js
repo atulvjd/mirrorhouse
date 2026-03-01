@@ -27,7 +27,7 @@ import { createGarden } from "./environment/garden.js";
 import { createLighting } from "./environment/lighting.js";
 import { createGround } from "./environment/ground.js";
 import { createInteriorLighting } from "./interior/lightingInterior.js";
-import { createRoomInterior } from "./world/roomInterior.js";
+import { createBungalowInterior } from "./world/bungalowInterior.js";
 import { createFurniture } from "./world/furniture.js";
 import { createAtmosphere } from "./world/atmosphere.js";
 import { createStoryDetails } from "./world/storyDetails.js";
@@ -43,6 +43,10 @@ import { createPowerCutEvent } from "./basement/powerCutEvent.js";
 import { createCarpetSystem } from "./basement/carpetSystem.js";
 import { createHiddenMirror } from "./basement/hiddenMirror.js";
 import { createBasementSound } from "./basement/basementSound.js";
+import { createMirrorReflectionSystem } from "./systems/mirrorReflectionSystem.js";
+import { createMirrorGrabSequence } from "./systems/mirrorGrabSequence.js";
+import { createMirrorTransitionSystem } from "./systems/mirrorTransitionSystem.js";
+import { loadMirrorWorld } from "./world/mirrorWorldLoader.js";
 
 export function startGame() {
   // Initialize the core Three.js objects.
@@ -227,11 +231,17 @@ export function startGame() {
       return;
     }
 
-    const interiorRoom = createRoomInterior(scene);
+    const interiorRoom = createBungalowInterior(scene);
     const furniture = createFurniture(interiorRoom.group);
     const cinematicAtmosphere = createAtmosphere(scene);
     createStoryDetails(scene);
     
+    const flashlight = createFlashlightSystem(camera);
+    const powerCut = createPowerCutEvent(
+        [cinematicAtmosphere.moonLight, ...scene.children.filter(c => c.isLight)], 
+        () => flashlight.enable()
+    );
+
     const drawerSystem = createDrawerSystem(
       furniture.drawer,
       furniture.drawerContentAnchor
@@ -240,6 +250,9 @@ export function startGame() {
     const letterSystem = createLetterSystem(drawerSystem.getContentAnchor());
     const dustParticles = createDustParticles(scene, camera, interiorRoom.bounds);
     const interiorLighting = createInteriorLighting(scene);
+
+    let basementSystems = null;
+    let powerCutTriggered = false;
 
     interiorSystems = {
       interior: interiorRoom.group,
@@ -250,17 +263,45 @@ export function startGame() {
       dustParticles,
       interiorLighting,
       cinematicAtmosphere,
+      flashlight,
       update: (delta, locked) => {
+        if (!letterSystem.isActive() && letterSystem.wasOpened && !powerCutTriggered) {
+            powerCut.trigger();
+            powerCutTriggered = true;
+        }
+
         drawerSystem.update(delta);
         photoSystem.update(delta);
         interiorLighting.update(delta);
         dustParticles.update(delta);
         cinematicAtmosphere.update(delta);
+        flashlight.update(delta);
+
+        if (basementSystems) {
+            basementSystems.carpet.update(delta);
+            basementSystems.mirror.update(camera, delta);
+        }
       }
+    };
+
+    // Load Basement logic
+    const loadBasement = () => {
+        const basement = createBasementEnvironment(scene);
+        const mirror = createHiddenMirror(basement.group);
+        const carpet = createCarpetSystem(basement.group, () => mirror.reveal());
+        
+        basementSystems = { basement, mirror, carpet };
+        interaction.register(carpet.object, carpet.callback);
     };
 
     const drawerInteractable = drawerSystem.getInteractable();
     interaction.register(drawerInteractable.object, drawerInteractable.callback);
+
+    // Monitor for letter close to unlock basement
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'KeyE' && !interiorLoaded) return;
+        // Logic to trigger loadBasement when near basement door
+    });
 
     for (let i = 0; i < photoSystem.interactables.length; i += 1) {
       const entry = photoSystem.interactables[i];
@@ -279,7 +320,7 @@ export function startGame() {
     interiorActive = true;
     disableExteriorRendering();
 
-    camera.position.set(0, 1.6, -2); // Adjusted for the 10x10 room
+    camera.position.set(0, 1.6, -2); // Adjusted for the room layout
     camera.lookAt(0, 1.62, -10.2);
   }
 
@@ -297,10 +338,21 @@ export function startGame() {
     const basementSound = createBasementSound();
     const flashlightSystem = createFlashlightSystem(camera);
     const hiddenMirror = createHiddenMirror(basementEnvironment.group);
+    
+    const reflectionSys = createMirrorReflectionSystem(scene, hiddenMirror.mesh);
+    const transitionSys = createMirrorTransitionSystem();
+    const grabSeq = createMirrorGrabSequence(camera, reflectionSys.group, () => {
+        transitionSys.triggerTransition(() => {
+            mirrorWorld = loadMirrorWorld(scene, camera);
+            mirrorWorldActive = true;
+        });
+    });
+
     const carpetSystem = createCarpetSystem(basementEnvironment.group, () => {
       basementSound.triggerCarpetDrag();
       hiddenMirror.reveal();
       basementSound.triggerMirrorRevealTone();
+      reflectionSys.activate();
     });
 
     const globalLights = [];
@@ -335,6 +387,9 @@ export function startGame() {
       powerCutEvent,
       carpetSystem,
       hiddenMirror,
+      reflectionSys,
+      grabSeq,
+      transitionSys
     };
 
     const carpetInteractable = carpetSystem.getInteractable();
@@ -471,14 +526,13 @@ export function startGame() {
       basementSystems.flashlightSystem.update(delta);
       basementSystems.carpetSystem.update(delta);
       basementSystems.hiddenMirror.update(camera, delta);
-
-      const holdDuration = basementSystems.hiddenMirror.consumeHoldRequest();
-      if (holdDuration > 0) {
-        basementMirrorHoldRemaining = Math.max(
-          basementMirrorHoldRemaining,
-          holdDuration
-        );
-      }
+      
+      // Mirror Sequence Updates
+      basementSystems.reflectionSys.update(camera, delta, () => {
+          basementSystems.grabSeq.trigger();
+      });
+      basementSystems.grabSeq.update(delta);
+      basementSystems.transitionSys.update(delta, camera);
     }
 
     reflection.update(camera, delta);
