@@ -26,14 +26,15 @@ import { createBungalow } from "./environment/bungalow.js";
 import { createGarden } from "./environment/garden.js";
 import { createLighting } from "./environment/lighting.js";
 import { createGround } from "./environment/ground.js";
-import { createHouseInterior } from "./interior/houseInterior.js";
-import { createFurniture } from "./interior/furniture.js";
+import { createInteriorLighting } from "./interior/lightingInterior.js";
+import { createRoomInterior } from "./world/roomInterior.js";
+import { createFurniture } from "./world/furniture.js";
+import { createAtmosphere } from "./world/atmosphere.js";
+import { createStoryDetails } from "./world/storyDetails.js";
 import { createDrawerSystem } from "./interior/drawerSystem.js";
 import { createPhotoSystem } from "./interior/photoSystem.js";
 import { createLetterSystem } from "./interior/letterSystem.js";
 import { createDustParticles } from "./interior/dustParticles.js";
-import { createInteriorLighting } from "./interior/lightingInterior.js";
-<<<<<<< HEAD
 import { createMirrorWorldScene } from "./mirrorWorld/mirrorWorldScene.js";
 import { createBasementEnvironment } from "./basement/basementEnvironment.js";
 import { createBasementStaircase } from "./basement/staircase.js";
@@ -42,9 +43,6 @@ import { createPowerCutEvent } from "./basement/powerCutEvent.js";
 import { createCarpetSystem } from "./basement/carpetSystem.js";
 import { createHiddenMirror } from "./basement/hiddenMirror.js";
 import { createBasementSound } from "./basement/basementSound.js";
-=======
-import { createRoomInterior } from "./world/roomInterior.js";
->>>>>>> 3324f12 (Gem Inhancement 2)
 
 export function startGame() {
   // Initialize the core Three.js objects.
@@ -230,25 +228,35 @@ export function startGame() {
     }
 
     const interiorRoom = createRoomInterior(scene);
-    const interior = createHouseInterior(scene);
-    const furniture = createFurniture(interior.group, interior.anchors);
+    const furniture = createFurniture(interiorRoom.group);
+    const cinematicAtmosphere = createAtmosphere(scene);
+    createStoryDetails(scene);
+    
     const drawerSystem = createDrawerSystem(
       furniture.drawer,
       furniture.drawerContentAnchor
     );
     const photoSystem = createPhotoSystem(drawerSystem.getContentAnchor(), story);
     const letterSystem = createLetterSystem(drawerSystem.getContentAnchor());
-    const dustParticles = createDustParticles(scene, camera, interior.bounds);
+    const dustParticles = createDustParticles(scene, camera, interiorRoom.bounds);
     const interiorLighting = createInteriorLighting(scene);
 
     interiorSystems = {
-      interior,
+      interior: interiorRoom.group,
       furniture,
       drawerSystem,
       photoSystem,
       letterSystem,
       dustParticles,
       interiorLighting,
+      cinematicAtmosphere,
+      update: (delta, locked) => {
+        drawerSystem.update(delta);
+        photoSystem.update(delta);
+        interiorLighting.update(delta);
+        dustParticles.update(delta);
+        cinematicAtmosphere.update(delta);
+      }
     };
 
     const drawerInteractable = drawerSystem.getInteractable();
@@ -264,14 +272,14 @@ export function startGame() {
       interaction.register(entry.object, entry.callback);
     }
 
-    registerHallucinationMeshes(interior.group, hallucinations);
+    registerHallucinationMeshes(interiorRoom.group, hallucinations);
     registerHallucinationMeshes(furniture.group, hallucinations);
 
     interiorLoaded = true;
     interiorActive = true;
     disableExteriorRendering();
 
-    camera.position.set(0, 1.6, -5.85);
+    camera.position.set(0, 1.6, -2); // Adjusted for the 10x10 room
     camera.lookAt(0, 1.62, -10.2);
   }
 
@@ -285,7 +293,7 @@ export function startGame() {
     }
 
     const basementEnvironment = createBasementEnvironment(scene);
-    const staircase = createBasementStaircase(interiorSystems.interior.group);
+    const staircase = createBasementStaircase(interiorSystems.interior);
     const basementSound = createBasementSound();
     const flashlightSystem = createFlashlightSystem(camera);
     const hiddenMirror = createHiddenMirror(basementEnvironment.group);
@@ -438,14 +446,7 @@ export function startGame() {
         environmentUpdate(camera, delta);
       }
     } else if (interiorSystems) {
-      interiorSystems.interior.update(
-        delta,
-        movement.controls.isLocked && !basementLoaded
-      );
-      interiorSystems.drawerSystem.update(delta);
-      interiorSystems.photoSystem.update(delta);
-      interiorSystems.interiorLighting.update(delta);
-      interiorSystems.dustParticles.update(delta);
+      interiorSystems.update(delta, movement.controls.isLocked);
     }
 
     if (basementLoaded && basementSystems) {
