@@ -4,32 +4,32 @@ export function createMirrorTown(scene) {
   const townGroup = new THREE.Group();
   townGroup.name = "mirrorTownGroup";
 
-  // 1. Ground: Cobblestone
+  // 1. Ground: Cobblestone - Updated for Color Clarity
   const groundGeo = new THREE.PlaneGeometry(200, 200);
   const groundMat = new THREE.MeshStandardMaterial({ 
-    color: 0x3a3f58, // slightly bluish gothic cobblestone
-    roughness: 0.55, // Step 5: Ground Reflection improvement
-    metalness: 0.1 
+    color: 0xa8a39c, // Road: #a8a39c
+    roughness: 0.45, 
+    metalness: 0.15 
   });
   const ground = new THREE.Mesh(groundGeo, groundMat);
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
   townGroup.add(ground);
 
-  // Architecture Colors
-  const wallColors = [0xd2cdc4, 0xc7c1b8, 0xbcb6ac]; // Step 10: Color Balance (Vintage warm tones)
+  // Architecture Colors - Step 7: Color Clarity
+  const wallColorVal = 0xc4bdb1; // Stone: #c4bdb1
+  const woodColorVal = 0x6f5745; // Wood: #6f5745
   const roofColors = [0x3f3b3a, 0x4b4644];
 
   // 2. Building Generator with Mirrored Text
   const createMirroredBuilding = (x, z, w, h, d, label, isTall = false) => {
     const bGroup = new THREE.Group();
-    const wallColor = wallColors[Math.floor(Math.random() * wallColors.length)];
     const roofColor = roofColors[Math.floor(Math.random() * roofColors.length)];
+    
+    const wallMat = new THREE.MeshStandardMaterial({ color: wallColorVal, roughness: 0.9 });
+    const woodMat = new THREE.MeshStandardMaterial({ color: woodColorVal, roughness: 0.8 });
 
-    const body = new THREE.Mesh(
-        new THREE.BoxGeometry(w, h, d),
-        new THREE.MeshStandardMaterial({ color: wallColor, roughness: 0.9 })
-    );
+    const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat);
     body.position.y = h / 2;
     body.castShadow = true;
     body.receiveShadow = true;
@@ -44,16 +44,15 @@ export function createMirrorTown(scene) {
     roof.castShadow = true;
     bGroup.add(roof);
 
-    // Glowing Windows - Step 4: Window Lighting
+    // Glowing Windows
     const windowGeo = new THREE.PlaneGeometry(1, 1.5);
     const windowMat = new THREE.MeshStandardMaterial({
-        color: 0xf6dcb5,
-        emissive: 0xf6dcb5,
-        emissiveIntensity: 0.8,
+        color: 0xf7e2c4,
+        emissive: 0xf7e2c4,
+        emissiveIntensity: 1.2,
         roughness: 0.2
     });
     
-    // Add some random windows
     for (let wy = 3; wy < h - 2; wy += 4) {
         const winLeft = new THREE.Mesh(windowGeo, windowMat);
         winLeft.position.set(-w/4, wy, d/2 + 0.05);
@@ -64,7 +63,6 @@ export function createMirrorTown(scene) {
         bGroup.add(winRight);
     }
 
-    // Add Mirrored Shop Sign if it has a label
     if (label) {
         const signCanvas = document.createElement("canvas");
         signCanvas.width = 512;
@@ -77,14 +75,14 @@ export function createMirrorTown(scene) {
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         
-        // THE MIRROR RULE: Reverse the text
         const reversedLabel = label.split("").reverse().join("");
         ctx.fillText(reversedLabel, 256, 64);
 
         const signTex = new THREE.CanvasTexture(signCanvas);
+        // Using StandardMaterial for sign so it receives light
         const sign = new THREE.Mesh(
             new THREE.PlaneGeometry(w * 0.8, 0.8),
-            new THREE.MeshBasicMaterial({ map: signTex })
+            new THREE.MeshStandardMaterial({ map: signTex, roughness: 0.8 })
         );
         sign.position.set(0, 3, d / 2 + 0.1);
         bGroup.add(sign);
@@ -124,13 +122,29 @@ export function createMirrorTown(scene) {
       arm.position.set(0.3, 3.8, 0);
       lampGroup.add(arm);
 
-      // Step 3: Stronger Street Lights
-      const light = new THREE.PointLight(0xffd89c, 3.5, 14);
+      const light = new THREE.PointLight(0xffd7a6, 4.5, 16, 2);
       light.position.set(0.6, 3.5, 0);
       light.castShadow = true;
       lampGroup.add(light);
       
-      const head = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.5, 0.4), new THREE.MeshBasicMaterial({ color: 0xffd89c }));
+      // God Rays from Street Lights
+      const beamGeo = new THREE.ConeGeometry(0.8, 4, 16, 1, true);
+      const beamMat = new THREE.MeshStandardMaterial({
+          color: 0xffd9a8,
+          transparent: true,
+          opacity: 0.15,
+          blending: THREE.AdditiveBlending,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+          emissive: 0xffd9a8,
+          emissiveIntensity: 0.5
+      });
+      const lightBeam = new THREE.Mesh(beamGeo, beamMat);
+      lightBeam.position.set(0.6, 1.5, 0);
+      lightBeam.rotation.x = Math.PI;
+      lampGroup.add(lightBeam);
+
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.5, 0.4), new THREE.MeshStandardMaterial({ color: 0xffd7a6, emissive: 0xffd7a6 }));
       head.position.set(0.6, 3.5, 0);
       lampGroup.add(head);
 

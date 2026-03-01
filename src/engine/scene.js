@@ -4,13 +4,34 @@ import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
 export function createScene() {
   const scene = new THREE.Scene();
 
-  // Step 2: Atmospheric Fog - Lightened for visibility
-  scene.background = new THREE.Color(0x8b8b92);
-  scene.fog = new THREE.FogExp2(0x8b8b92, 0.004);
+  // Step 7: Lighter Fog System - Adjusted for high visibility
+  scene.background = new THREE.Color(0x9ea2aa);
+  scene.fog = new THREE.Fog(0x9ea2aa, 30, 160);
 
-  // Step 1: Global Ambient Light - Strong fill to prevent black areas
-  const ambientLight = new THREE.AmbientLight(0xd6cdbf, 1.0);
+  // Step 2: Boost Ambient Light - Significant increase
+  const ambientLight = new THREE.AmbientLight(0xe6ded2, 1.4);
   scene.add(ambientLight);
+
+  // Step 3: Hemisphere Sky Light - Atmospheric scattering
+  const hemiLight = new THREE.HemisphereLight(0xaeb8c6, 0x6f6c66, 1.2);
+  scene.add(hemiLight);
+
+  // Step 1: Strong Moonlight Directional Light
+  const moonLight = new THREE.DirectionalLight(0xcfd8ff, 2.5);
+  moonLight.position.set(40, 80, 20);
+  moonLight.castShadow = true;
+  moonLight.shadow.mapSize.set(2048, 2048);
+  moonLight.shadow.bias = -0.0002; // Softened shadows
+  scene.add(moonLight);
+
+  // Step 11: Environment Light Probe (Cool neutral night lighting)
+  new RGBELoader().load(
+    "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/equirectangular/royal_esplanade_1k.hdr",
+    (texture) => {
+      texture.mapping = THREE.EquirectangularReflectionMapping;
+      scene.environment = texture;
+    }
+  );
 
   return scene;
 }

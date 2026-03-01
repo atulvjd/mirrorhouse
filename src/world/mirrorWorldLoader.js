@@ -85,15 +85,51 @@ export function loadMirrorWorld(scene, camera, story, interaction, overlay) {
 
   // 7. Mirror World Lighting & Atmosphere
   const mirrorAtmosphere = createAtmosphere(scene);
-  scene.fog = new THREE.FogExp2(0x8b8b92, 0.004);
-  scene.background = new THREE.Color(0x8b8b92);
+  scene.fog = new THREE.Fog(0x9ea2aa, 30, 160);
+  scene.background = new THREE.Color(0x2b3040);
   
-  const hemiLight = new THREE.HemisphereLight(0x9aa3b0, 0x4e4b47, 0.9);
+  // Cinematic Sky System
+  const skyGroup = new THREE.Group();
+  const skyDome = new THREE.Mesh(
+      new THREE.SphereGeometry(250, 32, 32),
+      new THREE.ShaderMaterial({
+          uniforms: {
+              topColor: { value: new THREE.Color(0x2b3040) },
+              bottomColor: { value: new THREE.Color(0x7a7f92) },
+              offset: { value: 33 },
+              exponent: { value: 0.6 }
+          },
+          vertexShader: `
+              varying vec3 vWorldPosition;
+              void main() {
+                  vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+                  vWorldPosition = worldPosition.xyz;
+                  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+              }
+          `,
+          fragmentShader: `
+              uniform vec3 topColor;
+              uniform vec3 bottomColor;
+              uniform float offset;
+              uniform float exponent;
+              varying vec3 vWorldPosition;
+              void main() {
+                  float h = normalize(vWorldPosition + offset).y;
+                  gl_FragColor = vec4(mix(bottomColor, topColor, max(pow(max(h, 0.0), exponent), 0.0)), 1.0);
+              }
+          `,
+          side: THREE.BackSide
+      })
+  );
+  skyGroup.add(skyDome);
+  scene.add(skyGroup);
+
+  const hemiLight = new THREE.HemisphereLight(0xaeb8c6, 0x6f6c66, 1.2);
   scene.add(hemiLight);
   
   // 8. Position Player
-  camera.position.set(0, 1.2, 0);
-  camera.rotation.set(Math.PI / 2, 0, 0);
+  camera.position.set(0, 1.7, 6); 
+  camera.rotation.set(0, 0, 0);
   
   let standingUp = true;
   let standProgress = 0;
@@ -102,10 +138,16 @@ export function loadMirrorWorld(scene, camera, story, interaction, overlay) {
 
   function update(delta) {
       time += delta;
+      
+      // Step 6: Player Immersion (Breathing)
+      if (!standingUp) {
+          camera.position.y += Math.sin(time * 1.2) * 0.002;
+      }
+
       if (standingUp) {
           standProgress = Math.min(1, standProgress + delta * 0.3);
           const ease = 1 - Math.pow(1 - standProgress, 3);
-          camera.position.y = THREE.MathUtils.lerp(1.2, 1.6, ease);
+          camera.position.y = THREE.MathUtils.lerp(1.2, 1.7, ease);
           camera.rotation.x = THREE.MathUtils.lerp(Math.PI / 2, 0, ease);
           if (standProgress >= 1) {
               standingUp = false;
@@ -131,8 +173,10 @@ export function loadMirrorWorld(scene, camera, story, interaction, overlay) {
       endingManager.update(delta);
       mirrorAtmosphere.update(delta);
 
-      const distToDirt = camera.position.distanceTo(dirtMesh.position);
-      dirtMesh.material.opacity = THREE.MathUtils.smoothstep(distToDirt, 2, 6) * 0.8;
+      if (dirtMesh) {
+          const distToDirt = camera.position.distanceTo(dirtMesh.position);
+          dirtMesh.material.opacity = THREE.MathUtils.smoothstep(distToDirt, 2, 6) * 0.8;
+      }
   }
 
   return { 
