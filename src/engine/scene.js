@@ -1,35 +1,45 @@
 import * as THREE from "three";
+import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
 
 export function createScene() {
-  // Cinematic opening palette: cold moonlight and dense blue-grey fog.
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0b1018);
-  scene.fog = new THREE.FogExp2(0x6a7284, 0.035);
 
-  const ambientLight = new THREE.AmbientLight(0x7d879c, 0.26);
-  const hemisphereLight = new THREE.HemisphereLight(0x8a96ac, 0x161312, 0.24);
+  // Dark vintage atmosphere: fog and background
+  scene.background = new THREE.Color(0x0c0e12);
+  scene.fog = new THREE.FogExp2(0x0c0e12, 0.035);
 
-  const moonLight = new THREE.DirectionalLight(0x9ab3d7, 0.95);
-  moonLight.position.set(14, 20, 10);
-  moonLight.castShadow = true;
-  moonLight.shadow.mapSize.set(2048, 2048);
-  moonLight.shadow.camera.left = -40;
-  moonLight.shadow.camera.right = 40;
-  moonLight.shadow.camera.top = 40;
-  moonLight.shadow.camera.bottom = -40;
-  moonLight.shadow.camera.near = 1;
-  moonLight.shadow.camera.far = 80;
-
-  // Kept as the main controllable point light for flicker/distortion systems.
-  const pointLight = new THREE.PointLight(0xffcc88, 0.95, 34);
-  pointLight.name = "roomPointLight";
-  pointLight.position.set(0, 3.4, -2.4);
-  pointLight.castShadow = true;
-
+  // 1. Ambient Light - Very subtle bluish gray fill to prevent pitch black.
+  const ambientLight = new THREE.AmbientLight(0x404855, 0.35);
   scene.add(ambientLight);
-  scene.add(hemisphereLight);
-  scene.add(moonLight);
+
+  // 2. Main Overhead Lamp - Dim warm vintage tungsten.
+  const pointLight = new THREE.PointLight(0xffd6a5, 1.2, 12);
+  pointLight.name = "roomPointLight";
+  pointLight.position.set(0, 2.6, 0);
+  pointLight.castShadow = true;
+  pointLight.shadow.mapSize.width = 2048;
+  pointLight.shadow.mapSize.height = 2048;
+  pointLight.shadow.bias = -0.0002;
   scene.add(pointLight);
+
+  // 3. Window Moonlight - Cold blue directional light.
+  const moonLight = new THREE.DirectionalLight(0x8fb6ff, 0.5);
+  moonLight.position.set(5, 6, 3);
+  moonLight.castShadow = true;
+  moonLight.shadow.mapSize.set(1024, 1024);
+  scene.add(moonLight);
+
+  // 4. HDRI Environment Map - For realistic reflections.
+  // Using a placeholder HDRI from a public repository for vintage indoor feel.
+  new RGBELoader().load(
+    "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/equirectangular/royal_esplanade_1k.hdr",
+    (texture) => {
+      texture.mapping = THREE.EquirectangularReflectionMapping;
+      scene.environment = texture;
+    }
+  );
+
+  // Store lights for external systems (flicker, distortion, etc.)
   scene.userData.pointLight = pointLight;
   scene.userData.moonLight = moonLight;
 
